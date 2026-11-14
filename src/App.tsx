@@ -1,16 +1,22 @@
-import { useRef, useState } from 'react';
 import type { LngLatBoundsLike } from 'mapbox-gl';
+import { useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
-import {
-  DAY_BOUNDS, SEGMENTS, TRIP_BOUNDS, TRIP_PADDING, isSameSelection, pointOf, type Selection,
-} from './data/derive';
-import type { DayKey } from './data/trip';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayChips, DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
-import { useRoutes } from './hooks/useRoutes';
+import {
+  DAY_BOUNDS,
+  isSameSelection,
+  pointOf,
+  SEGMENTS,
+  type Selection,
+  TRIP_BOUNDS,
+  TRIP_PADDING,
+} from './data/derive';
+import type { DayKey } from './data/trip';
 import { useMediaQuery } from './hooks/useMediaQuery';
+import { useRoutes } from './hooks/useRoutes';
 
 /** Keep in sync with the breakpoint in styles.css. */
 const MOBILE_QUERY = '(max-width: 760px)';
@@ -38,7 +44,12 @@ export function App() {
   const openSheet = () => moveSheet(snap === 'peek' ? 'half' : snap);
 
   const fit = (bounds: LngLatBoundsLike, s: Snap) =>
-    mapRef.current?.fitBounds(bounds, { padding: padding(s, TRIP_PADDING), maxZoom: 12, retainPadding: false, essential: true });
+    mapRef.current?.fitBounds(bounds, {
+      padding: padding(s, TRIP_PADDING),
+      maxZoom: 12,
+      retainPadding: false,
+      essential: true,
+    });
 
   const reset = () => {
     setSelection(null);

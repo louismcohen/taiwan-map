@@ -1,8 +1,8 @@
 import type { FeatureCollection, Point, Polygon } from 'geojson';
-import { Layer, Source, type LayerProps } from 'react-map-gl/mapbox';
-import { TOWNS, isPrimary, type TownEntry } from '../data/derive';
+import { Layer, type LayerProps, Source } from 'react-map-gl/mapbox';
+import { isPrimary, TOWNS, type TownEntry } from '../data/derive';
 import { DAYS } from '../data/trip';
-import { KM_PER_DEG_LAT, circlePolygon } from '../lib/geo';
+import { circlePolygon, KM_PER_DEG_LAT } from '../lib/geo';
 
 export const STAY_FILL_LAYER = 'stay-fill';
 

@@ -1,13 +1,13 @@
+import type { Drawer as DrawerPrimitive } from '@base-ui/react/drawer';
 import {
-  useLayoutEffect,
-  useRef,
-  useState,
   type CSSProperties,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
 } from 'react';
-import type { Drawer as DrawerPrimitive } from '@base-ui/react/drawer';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 
@@ -139,15 +139,18 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
         initialFocus={false}
         onPointerDownCapture={trackPointerStart}
         onPointerMoveCapture={trackPointerMove}
-        style={{
-          '--room': `calc(${full - peek}px - var(--drawer-snap-point-offset))`,
-          '--translate-y': RUBBER_BAND_Y,
-        } as CSSProperties}
+        style={
+          {
+            '--room': `calc(${full - peek}px - var(--drawer-snap-point-offset))`,
+            '--translate-y': RUBBER_BAND_Y,
+          } as CSSProperties
+        }
         className={cn(
           'h-[calc(100dvh-env(safe-area-inset-top)-56px)] max-h-none bg-background pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.12)] duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]',
           !animated && 'transition-none',
         )}
       >
+        {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: tap-anywhere shortcut; the handle button is the keyboard control */}
         <div ref={setHead} className="shrink-0 border-b select-none" onClick={expandFromPeek}>
           <button
             type="button"

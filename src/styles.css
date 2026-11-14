@@ -69,25 +69,43 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body, #root {
+  html,
+  body,
+  #root {
     @apply h-full bg-background font-sans text-foreground;
   }
   #root {
     @apply flex;
   }
-  button:not(:disabled), [role="button"]:not(:disabled) {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
     cursor: pointer;
   }
 }
 
 /* Mapbox renders this markup itself. */
 /* Above the selected marker, which StopMarkers raises to z-index 1. */
-.mapboxgl-popup { z-index: 2; }
-.mapboxgl-popup-content { border-radius: 12px; padding: 14px 16px; max-width: 280px; font-family: inherit; }
+.mapboxgl-popup {
+  z-index: 2;
+}
+.mapboxgl-popup-content {
+  border-radius: 12px;
+  padding: 14px 16px;
+  max-width: 280px;
+  font-family: inherit;
+}
 
 /* Only below the 760px breakpoint (see MOBILE_QUERY in App.tsx), where the bottom sheet covers the map. */
 @media (max-width: 760px) {
-  body { overscroll-behavior: none; }
-  #map .mapboxgl-ctrl-top-right { top: env(safe-area-inset-top); }
-  #map .mapboxgl-ctrl-bottom-left, #map .mapboxgl-ctrl-bottom-right { bottom: var(--bottom-inset, 0px); transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+  body {
+    overscroll-behavior: none;
+  }
+  #map .mapboxgl-ctrl-top-right {
+    top: env(safe-area-inset-top);
+  }
+  #map .mapboxgl-ctrl-bottom-left,
+  #map .mapboxgl-ctrl-bottom-right {
+    bottom: var(--bottom-inset, 0px);
+    transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
 }

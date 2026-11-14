@@ -1,8 +1,8 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PaddingOptions } from 'mapbox-gl';
-import { useState, type CSSProperties, type Ref } from 'react';
-import MapGL, { NavigationControl, ScaleControl, type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
-import { TOWNS, TRIP_BOUNDS, isSameSelection, type Selection } from '../data/derive';
+import { type CSSProperties, type Ref, useState } from 'react';
+import MapGL, { type MapMouseEvent, type MapRef, NavigationControl, ScaleControl } from 'react-map-gl/mapbox';
+import { isSameSelection, type Selection, TOWNS, TRIP_BOUNDS } from '../data/derive';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';

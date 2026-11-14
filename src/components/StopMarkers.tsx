@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 import { cn } from '@/lib/utils';
-import { STOPS, type NumberedStop } from '../data/derive';
+import { type NumberedStop, STOPS } from '../data/derive';
 import { DAYS } from '../data/trip';
 
 interface Props {

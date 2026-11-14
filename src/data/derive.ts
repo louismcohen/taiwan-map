@@ -2,7 +2,7 @@ import type { LngLatBoundsLike } from 'mapbox-gl';
 import { gmapsUrl } from '../lib/format';
 import { boundsOf } from '../lib/geo';
 import { PHOTOS } from './photos';
-import { DAYS, NIGHTS, NIGHT_NAMES, STOPS as TRIP_STOPS, type DayKey, type Stop, type Town } from './trip';
+import { DAYS, type DayKey, NIGHT_NAMES, NIGHTS, type Stop, type Town, STOPS as TRIP_STOPS } from './trip';
 
 export type NumberedStop = Stop & { n: number };
 
@@ -56,7 +56,7 @@ export const isSameSelection = (a: Selection | null, b: Selection) =>
     : a?.kind === 'town' && b.kind === 'town' && a.town.name === b.town.name;
 
 export const pointOf = (sel: Selection): [number, number] =>
-  sel.kind === 'stop' ? [sel.stop.lng, sel.stop.lat] : sel.at ?? [sel.town.lng, sel.town.lat];
+  sel.kind === 'stop' ? [sel.stop.lng, sel.stop.lat] : (sel.at ?? [sel.town.lng, sel.town.lat]);
 
 export function describe(sel: Selection) {
   if (sel.kind === 'stop') {

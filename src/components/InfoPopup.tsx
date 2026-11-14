@@ -23,11 +23,13 @@ export function InfoPopup({ selection }: { selection: Selection }) {
       {photo && (
         <img
           src={photo}
-          alt={`Photo of ${title}`}
+          alt={title}
           className="-mx-4 -mt-3.5 mb-2.5 block aspect-video w-[calc(100%+2rem)] max-w-none rounded-t-[12px] bg-muted object-cover"
         />
       )}
-      <div className="mb-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>{label}</div>
+      <div className="mb-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>
+        {label}
+      </div>
       <h3 className="mb-1.5 text-[15px] font-bold">{title}</h3>
       <p className="mb-2.5 text-[13px] leading-[1.45] text-muted-foreground">{body}</p>
       {href && (

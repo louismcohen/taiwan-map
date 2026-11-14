@@ -1,10 +1,10 @@
 import type { FeatureCollection, LineString } from 'geojson';
 import { useMemo } from 'react';
-import { Layer, Source, type LayerProps } from 'react-map-gl/mapbox';
+import { Layer, type LayerProps, Source } from 'react-map-gl/mapbox';
 import { DAYS } from '../data/trip';
+import { useRouteFlow } from '../hooks/useRouteFlow';
 import type { RouteResult } from '../lib/directions';
 import { flowGradient } from '../lib/flowGradient';
-import { useRouteFlow } from '../hooks/useRouteFlow';
 
 const FLOW_LAYER = 'route-flow';
 const lineLayout = { 'line-join': 'round', 'line-cap': 'round' } as const;
@@ -34,14 +34,17 @@ const flowLayer: LayerProps = {
 export function RouteLayers({ routes }: { routes: RouteResult[] }) {
   const animate = useRouteFlow(FLOW_LAYER);
 
-  const data = useMemo<FeatureCollection<LineString>>(() => ({
-    type: 'FeatureCollection',
-    features: routes.map((r) => ({
-      type: 'Feature',
-      properties: { color: DAYS[r.day].hex },
-      geometry: r.geometry,
-    })),
-  }), [routes]);
+  const data = useMemo<FeatureCollection<LineString>>(
+    () => ({
+      type: 'FeatureCollection',
+      features: routes.map((r) => ({
+        type: 'Feature',
+        properties: { color: DAYS[r.day].hex },
+        geometry: r.geometry,
+      })),
+    }),
+    [routes],
+  );
 
   return (
     <Source id="route" type="geojson" lineMetrics data={data}>

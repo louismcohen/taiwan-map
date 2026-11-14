@@ -1,4 +1,3 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import {
   BedIcon,
   Bread01Icon,
@@ -8,10 +7,11 @@ import {
   Train01Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { type CSSProperties, type ReactNode, useEffect, useRef } from 'react';
 import { Item, ItemContent, ItemDescription, ItemMedia } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
-import { STOPS, isPrimary, type Selection } from '../data/derive';
-import { DAYS, NIGHTS, NIGHT_NAMES, type DayKey, type Stop } from '../data/trip';
+import { isPrimary, type Selection, STOPS } from '../data/derive';
+import { DAYS, type DayKey, NIGHT_NAMES, NIGHTS, type Stop } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
 import { fmtKm, fmtTime } from '../lib/format';
 
@@ -53,7 +53,9 @@ export function DaySection({ day, route, selection, onSelect }: Props) {
       className="px-[22px] pt-4 pb-1.5 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-3.5"
     >
       <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-[13px] font-bold tracking-[0.08em] uppercase" style={{ color }}>{name}</h2>
+        <h2 className="text-[13px] font-bold tracking-[0.08em] uppercase" style={{ color }}>
+          {name}
+        </h2>
         <span className="text-xs text-muted-foreground tabular-nums">{statsText(route)}</span>
       </div>
       {note && <p className="-mt-0.5 mb-2 text-xs leading-[1.45] text-muted-foreground">{note}</p>}
@@ -106,7 +108,9 @@ export function DaySection({ day, route, selection, onSelect }: Props) {
             ))}
           </>
         ) : (
-          <div className={cn(overline, 'mb-0.5 font-bold tracking-[0.06em]')}>No overnight · evening train to Taipei</div>
+          <div className={cn(overline, 'mb-0.5 font-bold tracking-[0.06em]')}>
+            No overnight · evening train to Taipei
+          </div>
         )}
       </div>
     </section>

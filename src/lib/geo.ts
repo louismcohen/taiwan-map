@@ -17,5 +17,8 @@ export function circlePolygon(lng: number, lat: number, km: number, steps = 64):
 export function boundsOf(points: { lat: number; lng: number }[]): LngLatBoundsLike {
   const lngs = points.map((p) => p.lng);
   const lats = points.map((p) => p.lat);
-  return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
+  return [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ];
 }

@@ -9,7 +9,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { PHOTOS } from '../src/data/photos.ts';
 import { NIGHTS, STOPS } from '../src/data/trip.ts';
 
-const KEY = process.env.GOOGLE_PLACES_KEY;
+const KEY = process.env.GOOGLE_PLACES_KEY ?? '';
 const PER_PLACE = 3;
 const MAX_WIDTH = 800;
 const ROOT = new URL('..', import.meta.url);
@@ -38,11 +38,16 @@ const force = process.argv.includes('--force');
 
 const TARGETS: Target[] = [
   ...STOPS.map((s) => ({ name: s.name, lat: s.lat, lng: s.lng, query: s.query, km: 2 })),
-  ...Object.values(NIGHTS).flat().map((t) => ({ name: t.name, lat: t.lat, lng: t.lng, query: t.query, km: t.r })),
+  ...Object.values(NIGHTS)
+    .flat()
+    .map((t) => ({ name: t.name, lat: t.lat, lng: t.lng, query: t.query, km: t.r })),
 ];
 
 const slug = (name: string) =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
 function km(a: { lat: number; lng: number }, b: { latitude: number; longitude: number }) {
   const rad = Math.PI / 180;
@@ -57,7 +62,7 @@ async function search(target: Target, textQuery: string): Promise<Place | undefi
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Goog-Api-Key': KEY!,
+      'X-Goog-Api-Key': KEY,
       'X-Goog-FieldMask': 'places.displayName,places.location,places.photos',
     },
     body: JSON.stringify({

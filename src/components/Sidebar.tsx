@@ -31,7 +31,9 @@ export function TripHeader({ routes, children }: { routes: RouteResult[] | null;
       <h1 className="mb-1 text-xl font-bold tracking-[-0.01em] in-data-[slot=drawer-popup]:text-[17px]">
         East Rift &amp; Coast by Scooter
       </h1>
-      <p className="text-[13px] text-muted-foreground">Taitung → Hualien · Wed–Sat · outlined stops are suggested additions</p>
+      <p className="text-[13px] text-muted-foreground">
+        Taitung → Hualien · Wed–Sat · outlined stops are suggested additions
+      </p>
       <div className="mt-2.5 text-[13px] font-semibold">{totalsText(routes)}</div>
       {children}
     </header>
