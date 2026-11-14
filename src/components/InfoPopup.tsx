@@ -21,7 +21,7 @@ export function InfoPopup({ selection }: { selection: Selection }) {
         <div className="label" style={{ color }}>{label}</div>
         <h3>{title}</h3>
         <p>{body}</p>
-        {href && <a href={href} target="_blank" rel="noopener">Open in Google Maps ↗</a>}
+        {href && <a href={href} target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>}
       </div>
     </Popup>
   );

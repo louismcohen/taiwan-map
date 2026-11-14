@@ -87,11 +87,13 @@ function Row({ className, active, onClick, icon, label, title, body }: RowProps)
   }, [active]);
 
   return (
-    <div ref={ref} className={`${className}${active ? ' active' : ''}`} onClick={onClick}>
+    <div ref={ref} className={`${className}${active ? ' active' : ''}`}>
       {icon}
       <div>
         <div className="label">{label}</div>
-        <h3>{title}</h3>
+        <h3>
+          <button type="button" className="stop-btn" aria-pressed={active} onClick={onClick}>{title}</button>
+        </h3>
         <p>{body}</p>
       </div>
     </div>

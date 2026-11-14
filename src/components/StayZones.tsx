@@ -1,7 +1,7 @@
 import type { FeatureCollection, Point, Polygon } from 'geojson';
 import { Layer, Source, type LayerProps } from 'react-map-gl/mapbox';
 import { TOWNS, isPrimary, type TownEntry } from '../data/derive';
-import { DAYS, NIGHT_NAMES } from '../data/trip';
+import { DAYS } from '../data/trip';
 import { KM_PER_DEG_LAT, circlePolygon } from '../lib/geo';
 
 export const STAY_FILL_LAYER = 'stay-fill';
@@ -29,7 +29,7 @@ const labels: FeatureCollection<Point> = {
     type: 'Feature',
     properties: {
       ...props(x, i),
-      label: `${x.town.name}\n${NIGHT_NAMES[x.day]!.replace(' night', '')} · ${x.town.tag.toLowerCase()}`,
+      label: `${x.town.name}\n${DAYS[x.day].name} · ${x.town.tag.toLowerCase()}`,
     },
     geometry: { type: 'Point', coordinates: [x.town.lng, x.town.lat - x.town.r / KM_PER_DEG_LAT] },
   })),

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 export type Snap = 'peek' | 'half' | 'full';
 export type SheetHeights = Record<Snap, number>;
@@ -26,6 +26,8 @@ interface Drag {
   lastT: number;
   velocity: number;
   inBody: boolean;
+  /** A tap here (no drag) on the collapsed sheet expands it. */
+  tapExpands: boolean;
   mode: 'pending' | 'drag' | 'scroll';
 }
 
@@ -62,13 +64,14 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
   });
 
   useLayoutEffect(() => {
-    const sheet = sheetRef.current!;
-    const head = headRef.current!;
+    const sheet = sheetRef.current;
+    const head = headRef.current;
+    if (!sheet || !head) return;
     const measure = () =>
       setSize({
         full: sheet.offsetHeight,
         head: head.offsetHeight,
-        safeBottom: parseFloat(getComputedStyle(sheet).paddingBottom) || 0,
+        safeBottom: Number.parseFloat(getComputedStyle(sheet).paddingBottom) || 0,
       });
     measure();
     const observer = new ResizeObserver(measure);
@@ -79,22 +82,26 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
 
   // Skip the slide-in on first paint.
   useLayoutEffect(() => {
-    const sheet = sheetRef.current!;
+    const sheet = sheetRef.current;
+    if (!sheet) return;
     sheet.classList.add('dragging');
     const id = requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.remove('dragging')));
     return () => cancelAnimationFrame(id);
   }, []);
 
   useLayoutEffect(() => {
-    if (!full) return;
+    const sheet = sheetRef.current;
+    if (!sheet || !full) return;
     const heights = { peek, half, full };
-    sheetRef.current!.style.transform = `translateY(${full - heights[snap]}px)`;
+    sheet.style.transform = `translateY(${full - heights[snap]}px)`;
     onHeightsChange(heights);
   }, [snap, peek, half, full, onHeightsChange]);
 
   useEffect(() => {
-    const sheet = sheetRef.current!;
-    const body = bodyRef.current!;
+    const sheet = sheetRef.current;
+    const head = headRef.current;
+    const body = bodyRef.current;
+    if (!sheet || !head || !body) return;
     let drag: Drag | null = null;
 
     const place = (offset: number) => {
@@ -103,9 +110,13 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
 
     const begin = (y: number, target: EventTarget | null) => {
       const base = new DOMMatrixReadOnly(getComputedStyle(sheet).transform).m42;
+      const el = target instanceof Element ? target : null;
       drag = {
         startY: y, base, offset: base, lastY: y, lastT: performance.now(), velocity: 0,
-        inBody: body.contains(target as Node), mode: 'pending',
+        inBody: !!el && body.contains(el),
+        // Controls in the header handle their own taps.
+        tapExpands: !!el && head.contains(el) && !el.closest('button, a'),
+        mode: 'pending',
       };
     };
 
@@ -131,12 +142,13 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
       return true;
     };
 
-    const end = () => {
+    const end = (released: boolean) => {
       const d = drag;
       drag = null;
+      const { heights, snap, onSnapChange } = latest.current;
+      if (d?.mode === 'pending' && released && d.tapExpands && snap === 'peek') onSnapChange('half');
       if (d?.mode !== 'drag') return;
       sheet.classList.remove('dragging');
-      const { heights, snap, onSnapChange } = latest.current;
       const projected = heights.full - (d.offset + d.velocity * FLING_MS);
       const target = SNAPS.reduce((a, b) => (Math.abs(heights[b] - projected) < Math.abs(heights[a] - projected) ? b : a));
       place(heights.full - heights[target]);
@@ -146,18 +158,20 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) begin(e.touches[0].clientY, e.target);
-      else end();
+      else end(false);
     };
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 1 && move(e.touches[0].clientY) && e.cancelable) e.preventDefault();
     };
+    const onTouchEnd = () => end(true);
+    const onTouchCancel = () => end(false);
 
     const onPointerMove = (e: PointerEvent) => {
       if (move(e.clientY)) e.preventDefault();
     };
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
-      end();
+      end(true);
     };
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
@@ -168,28 +182,25 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
 
     sheet.addEventListener('touchstart', onTouchStart, { passive: true });
     sheet.addEventListener('touchmove', onTouchMove, { passive: false });
-    sheet.addEventListener('touchend', end);
-    sheet.addEventListener('touchcancel', end);
+    sheet.addEventListener('touchend', onTouchEnd);
+    sheet.addEventListener('touchcancel', onTouchCancel);
     sheet.addEventListener('pointerdown', onPointerDown);
     return () => {
       sheet.removeEventListener('touchstart', onTouchStart);
       sheet.removeEventListener('touchmove', onTouchMove);
-      sheet.removeEventListener('touchend', end);
-      sheet.removeEventListener('touchcancel', end);
+      sheet.removeEventListener('touchend', onTouchEnd);
+      sheet.removeEventListener('touchcancel', onTouchCancel);
       sheet.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
   }, []);
 
-  const expandFromPeek = (e: MouseEvent) => {
-    if (snap === 'peek' && !(e.target as Element).closest('button, a')) onSnapChange('half');
-  };
-
   return (
     <div ref={sheetRef} className="sheet" data-snap={snap}>
-      <div ref={headRef} className="sheet-head" onClick={expandFromPeek}>
+      <div ref={headRef} className="sheet-head">
         <button
+          type="button"
           className="sheet-handle"
           aria-label={snap === 'peek' ? 'Expand itinerary' : 'Collapse itinerary'}
           onClick={() => onSnapChange(snap === 'peek' ? 'half' : 'peek')}

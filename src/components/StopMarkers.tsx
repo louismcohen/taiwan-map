@@ -10,8 +10,12 @@ interface Props {
 
 export function StopMarkers({ selected, onClick }: Props) {
   return STOPS.map((stop) => {
-    const className = 'marker' + (stop.stay || stop.final ? ' stay' : '') + (stop.suggested ? ' suggested' : '')
-      + (stop === selected ? ' selected' : '');
+    const className = [
+      'marker',
+      (stop.stay || stop.final) && 'stay',
+      stop.suggested && 'suggested',
+      stop === selected && 'selected',
+    ].filter(Boolean).join(' ');
     return (
       <Marker
         key={stop.n}

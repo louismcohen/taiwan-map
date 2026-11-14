@@ -16,14 +16,14 @@ export function SelectionDetail({ selection, onSelect, onClose }: Props) {
     <div className="detail">
       <div className="detail-top">
         <div className="label" style={{ color }}>{label}</div>
-        <button className="close-btn" aria-label="Close" onClick={onClose}>×</button>
+        <button type="button" className="close-btn" aria-label="Close" onClick={onClose}>×</button>
       </div>
       <h3>{title}</h3>
       <p>{body}</p>
       <div className="detail-actions">
-        {href && <a href={href} target="_blank" rel="noopener">Open in Google Maps ↗</a>}
-        <button className="text-btn" disabled={!prev} onClick={() => prev && onSelect(prev)}>‹ Prev</button>
-        <button className="text-btn" disabled={!next} onClick={() => next && onSelect(next)}>Next ›</button>
+        {href && <a href={href} target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>}
+        <button type="button" className="text-btn" disabled={!prev} onClick={() => prev && onSelect(prev)}>‹ Prev</button>
+        <button type="button" className="text-btn" disabled={!next} onClick={() => next && onSelect(next)}>Next ›</button>
       </div>
     </div>
   );

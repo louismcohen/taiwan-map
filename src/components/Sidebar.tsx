@@ -13,9 +13,13 @@ interface Props {
 
 function totalsText(routes: RouteResult[] | null) {
   if (!routes) return 'Calculating route…';
-  if (routes.some((r) => r.distance == null)) return 'Some segments could not be routed';
-  const dist = routes.reduce((sum, r) => sum + r.distance!, 0);
-  const dur = routes.reduce((sum, r) => sum + r.duration!, 0);
+  let dist = 0;
+  let dur = 0;
+  for (const r of routes) {
+    if (r.distance == null || r.duration == null) return 'Some segments could not be routed';
+    dist += r.distance;
+    dur += r.duration;
+  }
   return `${fmtKm(dist)} total · ~${fmtTime(dur)} riding`;
 }
 
@@ -35,6 +39,7 @@ export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
     <div className="day-chips">
       {DAY_KEYS.map((day) => (
         <button
+          type="button"
           key={day}
           className="day-chip"
           style={{ '--c': DAYS[day].hex } as CSSProperties}

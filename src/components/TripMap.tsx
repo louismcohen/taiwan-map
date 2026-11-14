@@ -1,7 +1,7 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PaddingOptions } from 'mapbox-gl';
 import { useState, type CSSProperties, type Ref } from 'react';
-import Map, { NavigationControl, ScaleControl, type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
+import MapGL, { NavigationControl, ScaleControl, type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
 import { TOWNS, TRIP_BOUNDS, isSameSelection, type Selection } from '../data/derive';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
@@ -30,18 +30,18 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
   const [cursor, setCursor] = useState('');
 
   const handleClick = (e: MapMouseEvent) => {
-    const feature = e.features?.[0];
-    if (!feature) {
+    const i: number | undefined = e.features?.[0]?.properties?.i;
+    if (i == null) {
       onSelect(null);
       return;
     }
-    const { town, day } = TOWNS[feature.properties!.i];
+    const { town, day } = TOWNS[i];
     onSelect({ kind: 'town', town, day, at: [e.lngLat.lng, e.lngLat.lat] });
   };
 
   return (
     <div id="map" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
-      <Map
+      <MapGL
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
@@ -63,7 +63,7 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
           }
         />
         {popups && selection && <InfoPopup selection={selection} />}
-      </Map>
+      </MapGL>
     </div>
   );
 }

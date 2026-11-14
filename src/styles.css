@@ -21,7 +21,12 @@ header p { margin: 0; color: var(--muted); font-size: 13px; }
 .day-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .day-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
 .day-head .stats { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.stop { display: flex; gap: 12px; padding: 10px 10px; margin: 0 -10px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+.stop { position: relative; display: flex; gap: 12px; padding: 10px 10px; margin: 0 -10px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+/* The title's button is stretched over the whole row so the row is one click target. */
+.stop-btn { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.stop-btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.stop-btn:focus-visible { outline: none; }
+.stop-btn:focus-visible::after { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 10px; }
 .stop:hover, .stop.active { background: #efebe3; }
 .day-note { margin: -2px 0 8px; font-size: 12px; line-height: 1.45; color: var(--muted); }
 .badge { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
