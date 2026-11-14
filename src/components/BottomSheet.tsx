@@ -4,6 +4,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
+  type Ref,
   useLayoutEffect,
   useRef,
   useState,
@@ -32,6 +33,8 @@ interface Props {
   onSnapChange: (snap: Snap) => void;
   onHeightsChange: (heights: SheetHeights) => void;
   header: ReactNode;
+  /** The scrolling element that holds `children`. */
+  bodyRef?: Ref<HTMLDivElement>;
   children: ReactNode;
 }
 
@@ -49,7 +52,7 @@ function swallowNextClick() {
  * Always-open, non-modal drawer that snaps between `peek` (just the header), `half` and `full`.
  * The body scrolls only when fully expanded; otherwise any vertical drag moves the sheet.
  */
-export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, children }: Props) {
+export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, bodyRef, children }: Props) {
   // The popup mounts through a portal, so it may not exist on the first layout pass.
   const [popup, setPopup] = useState<HTMLDivElement | null>(null);
   const [head, setHead] = useState<HTMLDivElement | null>(null);
@@ -160,7 +163,10 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
           />
           {header}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-hidden overscroll-contain group-data-expanded/drawer-popup:overflow-y-auto">
+        <div
+          ref={bodyRef}
+          className="min-h-0 flex-1 overflow-y-hidden overscroll-contain [container-type:size] group-data-expanded/drawer-popup:overflow-y-auto"
+        >
           {children}
         </div>
       </DrawerContent>

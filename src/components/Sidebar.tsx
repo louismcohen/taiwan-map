@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { DAY_KEYS, type Selection } from '../data/derive';
 import { DAYS, type DayKey } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
@@ -40,7 +41,7 @@ export function TripHeader({ routes, children }: { routes: RouteResult[] | null;
   );
 }
 
-export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
+export function DayChips({ active, onPick }: { active: DayKey; onPick: (day: DayKey) => void }) {
   return (
     <div className="mt-2.5 flex gap-1.5">
       {DAY_KEYS.map((day) => (
@@ -48,8 +49,12 @@ export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
           key={day}
           variant="outline"
           size="sm"
-          className="h-auto gap-[5px] rounded-full bg-card px-[9px] py-1 text-xs font-semibold before:size-[7px] before:rounded-full before:bg-(--c)"
+          className={cn(
+            'h-auto gap-[5px] rounded-full bg-card px-[9px] py-1 text-xs font-semibold before:size-[7px] before:rounded-full before:bg-(--c)',
+            day === active && 'border-(--c) bg-(--c) text-white before:bg-white hover:bg-(--c) hover:text-white',
+          )}
           style={{ '--c': DAYS[day].hex } as CSSProperties}
+          aria-current={day === active || undefined}
           onClick={() => onPick(day)}
         >
           {DAYS[day].name.slice(0, 3)}

@@ -82,5 +82,4 @@ export function describe(sel: Selection) {
   };
 }
 
-const PRIMARY_TAGS = new Set(['Booked', 'Recommended']);
-export const isPrimary = (town: Town) => PRIMARY_TAGS.has(town.tag);
+export const isPrimary = (town: Town) => town.tag === 'Recommended';

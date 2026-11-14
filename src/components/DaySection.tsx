@@ -50,7 +50,8 @@ export function DaySection({ day, route, selection, onSelect }: Props) {
   return (
     <section
       id={`day-${day}`}
-      className="px-[22px] pt-4 pb-1.5 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-3.5"
+      // In the sheet, the last day fills the list's height so scrolling to it can bring it to the top.
+      className="px-[22px] pt-4 pb-1.5 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-3.5 in-data-[slot=drawer-popup]:last:min-h-[100cqh]"
     >
       <div className="mb-2 flex items-baseline justify-between">
         <h2 className="text-[13px] font-bold tracking-[0.08em] uppercase" style={{ color }}>

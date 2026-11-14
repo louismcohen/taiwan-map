@@ -15,6 +15,7 @@ import {
   TRIP_PADDING,
 } from './data/derive';
 import type { DayKey } from './data/trip';
+import { useDayScroll } from './hooks/useDayScroll';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useRoutes } from './hooks/useRoutes';
 
@@ -28,6 +29,8 @@ export function App() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [snap, setSnap] = useState<Snap>('peek');
   const [sheetHeights, setSheetHeights] = useState<SheetHeights | null>(null);
+  const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
+  const [activeDay, scrollToDay] = useDayScroll(sheetBody);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const routes = useRoutes(SEGMENTS);
 
@@ -87,7 +90,7 @@ export function App() {
   const showDay = (day: DayKey) => {
     setSelection(null);
     fit(DAY_BOUNDS[day], openSheet());
-    requestAnimationFrame(() => document.getElementById(`day-${day}`)?.scrollIntoView({ block: 'start' }));
+    requestAnimationFrame(() => scrollToDay(day));
   };
 
   return (
@@ -111,12 +114,13 @@ export function App() {
           snap={snap}
           onSnapChange={setSnap}
           onHeightsChange={setSheetHeights}
+          bodyRef={setSheetBody}
           header={
             selection ? (
               <SelectionDetail selection={selection} onSelect={focus} onClose={() => setSelection(null)} />
             ) : (
               <TripHeader routes={routes}>
-                <DayChips onPick={showDay} />
+                <DayChips active={activeDay} onPick={showDay} />
               </TripHeader>
             )
           }

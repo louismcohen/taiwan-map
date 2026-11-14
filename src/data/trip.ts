@@ -28,7 +28,7 @@ export interface Stop {
   original?: [number, number];
 }
 
-export type TownTag = 'Booked' | 'Recommended' | 'Alternative';
+export type TownTag = 'Recommended' | 'Alternative';
 
 /** Area to stay for a night, drawn as a soft zone rather than a pin. */
 export interface Town {
@@ -95,14 +95,14 @@ export const STOPS: Stop[] = [
 
 export const NIGHTS: Record<DayKey, Town[]> = {
   wed: [
-    { name: 'Taitung City', lat: 22.7555, lng: 121.1495, r: 4.5, tag: 'Booked',
-      note: 'Where your homestay is. Downtown has Tiehua Music Village and the night market, and it is the easiest place to pick up a scooter.' },
+    { name: 'Taitung City', lat: 22.7555, lng: 121.1495, r: 4.5, tag: 'Recommended',
+      note: 'Where the planned homestay is. Downtown has Tiehua Music Village and the night market, and it is the easiest place to pick up a scooter.' },
     { name: 'Dulan', lat: 22.8734, lng: 121.2276, r: 3, tag: 'Alternative',
       note: 'Laid-back surf village 30 km up the coast with cafés and live music. Gives you a head start on Thursday.' },
   ],
   thu: [
-    { name: 'Antong Hot Springs', lat: 23.2805, lng: 121.3425, r: 3, tag: 'Booked', query: '安通露天野溪溫泉',
-      note: 'Your hot spring hotel. Quiet and rural, a short ride from Yuli for dinner.' },
+    { name: 'Antong Hot Springs', lat: 23.2805, lng: 121.3425, r: 3, tag: 'Recommended', query: '安通露天野溪溫泉',
+      note: 'Where the planned hot spring hotel is. Quiet and rural, a short ride from Yuli for dinner.' },
     { name: 'Yuli', lat: 23.3341, lng: 121.3147, r: 3, tag: 'Alternative', query: '玉里鎮',
       note: 'Market town with the most food and lodging in this stretch of the valley. Walk to dinner, and Hwy 30 starts right here on Friday.' },
   ],
