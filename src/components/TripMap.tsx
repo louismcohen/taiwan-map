@@ -1,7 +1,7 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useState, type Ref } from 'react';
 import Map, { NavigationControl, ScaleControl, type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
-import { TOWNS, TRIP_BOUNDS, type Selection } from '../data/derive';
+import { TOWNS, TRIP_BOUNDS, TRIP_PADDING, isSameSelection, type Selection } from '../data/derive';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';
@@ -13,12 +13,13 @@ interface Props {
   mapRef: Ref<MapRef>;
   selection: Selection | null;
   onSelect: (selection: Selection | null) => void;
+  onReset: () => void;
   routes: RouteResult[] | null;
 }
 
 const INTERACTIVE_LAYERS = [STAY_FILL_LAYER];
 
-export function TripMap({ mapRef, selection, onSelect, routes }: Props) {
+export function TripMap({ mapRef, selection, onSelect, onReset, routes }: Props) {
   const [cursor, setCursor] = useState('');
 
   const handleClick = (e: MapMouseEvent) => {
@@ -37,7 +38,7 @@ export function TripMap({ mapRef, selection, onSelect, routes }: Props) {
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
-        initialViewState={{ bounds: TRIP_BOUNDS, fitBoundsOptions: { padding: 60 } }}
+        initialViewState={{ bounds: TRIP_BOUNDS, fitBoundsOptions: { padding: TRIP_PADDING } }}
         interactiveLayerIds={INTERACTIVE_LAYERS}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
@@ -50,7 +51,7 @@ export function TripMap({ mapRef, selection, onSelect, routes }: Props) {
         {routes && <RouteLayers routes={routes} />}
         <StopMarkers
           onClick={(stop) =>
-            onSelect(selection?.kind === 'stop' && selection.stop === stop ? null : { kind: 'stop', stop })
+            isSameSelection(selection, { kind: 'stop', stop }) ? onReset() : onSelect({ kind: 'stop', stop })
           }
         />
         {selection && <InfoPopup selection={selection} />}

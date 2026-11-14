@@ -34,6 +34,10 @@ export const SEGMENTS: Segment[] = DAY_KEYS.flatMap((day) => {
 export const TOWNS: TownEntry[] = DAY_KEYS.flatMap((day) => NIGHTS[day].map((town) => ({ town, day })));
 
 export const TRIP_BOUNDS = boundsOf(STOPS);
+export const TRIP_PADDING = 60;
+
+export const isSameSelection = (a: Selection | null, b: Selection) =>
+  a?.kind === 'stop' ? b.kind === 'stop' && a.stop === b.stop : a?.kind === 'town' && b.kind === 'town' && a.town === b.town;
 
 const PRIMARY_TAGS = new Set(['Booked', 'Recommended']);
 export const isPrimary = (town: Town) => PRIMARY_TAGS.has(town.tag);
