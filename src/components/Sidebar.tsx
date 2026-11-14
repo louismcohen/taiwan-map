@@ -24,9 +24,12 @@ function totalsText(routes: RouteResult[] | null) {
   return `${fmtKm(dist)} total · ~${fmtTime(dur)} riding`;
 }
 
-export function TripHeader({ routes }: { routes: RouteResult[] | null }) {
+export function TripHeader({ routes, hidden }: { routes: RouteResult[] | null; hidden?: boolean }) {
   return (
-    <header className="border-b px-[22px] pt-6 pb-4 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-2 in-data-[slot=drawer-popup]:pb-4">
+    <header
+      hidden={hidden}
+      className="border-b px-[22px] pt-6 pb-4 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-2 in-data-[slot=drawer-popup]:pb-4"
+    >
       <h1 className="mb-1 text-xl font-bold tracking-[-0.01em] in-data-[slot=drawer-popup]:text-[17px]">
         East Rift &amp; Coast by Scooter
       </h1>
@@ -42,9 +45,10 @@ export function DayList({
   ref,
   selection,
   onSelect,
-}: Pick<Props, 'selection' | 'onSelect'> & { ref?: Ref<HTMLDivElement> }) {
+  hidden,
+}: Pick<Props, 'selection' | 'onSelect'> & { ref?: Ref<HTMLDivElement>; hidden?: boolean }) {
   return (
-    <div ref={ref}>
+    <div ref={ref} hidden={hidden}>
       {DAY_KEYS.map((day) => (
         <DaySection key={day} day={day} selection={selection} onSelect={onSelect} />
       ))}

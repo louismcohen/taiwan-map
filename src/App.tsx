@@ -1,5 +1,5 @@
 import type { LngLatBoundsLike } from 'mapbox-gl';
-import { useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
 import { DayScrubber } from './components/DayScrubber';
@@ -31,12 +31,17 @@ export function App() {
   const [sheetHeights, setSheetHeights] = useState<SheetHeights | null>(null);
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
   const [dayList, setDayList] = useState<HTMLDivElement | null>(null);
+  const listScroll = useRef(0);
+  /** The sheet's height around the last stop, to aim the camera before the next one is measured. */
+  const lastFit = useRef<number | null>(null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const routes = useRoutes(SEGMENTS);
+  /** On phones, a stop replaces the list below the day scrubber, and the sheet shrinks to fit them. */
+  const showingStop = !!selection;
 
   // A full-height sheet hides the map anyway; aim the camera for when it comes back down.
-  const insetFor = (s: Snap) => (isMobile && sheetHeights ? sheetHeights[s === 'full' ? 'half' : s] : 0);
-  const padding = (s: Snap, base = 0) => ({ top: base, left: base, right: base, bottom: base + insetFor(s) });
+  const routeInset = (s: Snap) => (isMobile && sheetHeights ? sheetHeights[s === 'full' ? 'half' : s] : 0);
+  const padding = (inset: number, base = 0) => ({ top: base, left: base, right: base, bottom: base + inset });
 
   const moveSheet = (s: Snap) => {
     if (isMobile) setSnap(s);
@@ -46,17 +51,25 @@ export function App() {
   // Keep whatever size the user dragged the sheet to; only lift it out of `peek` to show content.
   const openSheet = () => moveSheet(snap === 'peek' ? 'half' : snap);
 
-  const fit = (bounds: LngLatBoundsLike, s: Snap) =>
+  const select = (sel: Selection | null) => {
+    if (sel && !selection && sheetBody) listScroll.current = sheetBody.scrollTop;
+    setSelection(sel);
+  };
+
+  /** How much of the map's bottom the sheet covers once it shows a stop. */
+  const reveal = () => (isMobile ? (lastFit.current ?? routeInset('half')) : 0);
+
+  const fit = (bounds: LngLatBoundsLike, inset: number) =>
     mapRef.current?.fitBounds(bounds, {
-      padding: padding(s, TRIP_PADDING),
+      padding: padding(inset, TRIP_PADDING),
       maxZoom: 12,
       retainPadding: false,
       essential: true,
     });
 
   const reset = () => {
-    setSelection(null);
-    fit(TRIP_BOUNDS, moveSheet('peek'));
+    select(null);
+    fit(TRIP_BOUNDS, routeInset(moveSheet('peek')));
   };
 
   const focus = (sel: Selection) => {
@@ -64,11 +77,11 @@ export function App() {
       reset();
       return;
     }
-    setSelection(sel);
+    select(sel);
     mapRef.current?.flyTo({
       center: pointOf(sel),
       zoom: sel.kind === 'stop' ? 13 : 12,
-      padding: padding(openSheet()),
+      padding: padding(reveal()),
       retainPadding: false,
       essential: true,
     });
@@ -76,22 +89,39 @@ export function App() {
 
   // Map taps select in place; on phones, pan only if the sheet would cover the selection.
   const selectOnMap = (sel: Selection | null) => {
-    setSelection(sel);
+    select(sel);
     if (!isMobile) return;
-    const s = sel ? openSheet() : moveSheet('peek');
+    if (!sel) {
+      moveSheet('peek');
+      return;
+    }
+    const inset = reveal();
     const map = mapRef.current;
-    if (!sel || !map) return;
+    if (!map) return;
     const point = pointOf(sel);
-    if (map.project(point).y > map.getContainer().clientHeight - insetFor(s) - REVEAL_MARGIN) {
-      map.easeTo({ center: point, padding: padding(s), retainPadding: false });
+    if (map.project(point).y > map.getContainer().clientHeight - inset - REVEAL_MARGIN) {
+      map.easeTo({ center: point, padding: padding(inset), retainPadding: false });
     }
   };
 
   // The scrubber scrolls the list to the day itself.
   const showDay = (day: DayKey) => {
-    setSelection(null);
-    fit(DAY_BOUNDS[day], openSheet());
+    select(null);
+    fit(DAY_BOUNDS[day], routeInset(openSheet()));
   };
+
+  const close = () => select(null);
+
+  // The detail starts at the top; going back returns to where the list was.
+  useLayoutEffect(() => {
+    if (sheetBody) sheetBody.scrollTop = showingStop ? 0 : listScroll.current;
+  }, [showingStop, sheetBody]);
+
+  useEffect(() => {
+    if (showingStop && sheetHeights) lastFit.current = sheetHeights.fit;
+  }, [showingStop, sheetHeights]);
+
+  const bottomInset = showingStop && isMobile ? (sheetHeights?.fit ?? 0) : routeInset(snap);
 
   return (
     <>
@@ -105,8 +135,8 @@ export function App() {
           onReset={reset}
           routes={routes}
           popups={!isMobile}
-          initialPadding={padding('peek', TRIP_PADDING)}
-          bottomInset={insetFor(snap)}
+          initialPadding={padding(routeInset('peek'), TRIP_PADDING)}
+          bottomInset={bottomInset}
         />
       )}
       {isMobile && (
@@ -115,14 +145,24 @@ export function App() {
           onSnapChange={setSnap}
           onHeightsChange={setSheetHeights}
           bodyRef={setSheetBody}
-          header={
-            selection && <SelectionDetail selection={selection} onSelect={focus} onClose={() => setSelection(null)} />
-          }
-          peekTo={selection ? null : dayList}
+          fit={showingStop}
+          onDismiss={showingStop ? close : undefined}
+          peekTo={dayList}
         >
-          <TripHeader routes={routes} />
-          <DayScrubber list={sheetBody} routes={routes} sticky onPick={showDay} />
-          <DayList ref={setDayList} selection={selection} onSelect={focus} />
+          <TripHeader routes={routes} hidden={showingStop} />
+          <DayScrubber
+            list={sheetBody}
+            routes={routes}
+            sticky
+            onPick={showDay}
+            current={selection ? { selection, onBack: close } : undefined}
+          />
+          {selection && (
+            <div className="motion-safe:animate-in motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-safe:fade-in motion-safe:slide-in-from-right-12">
+              <SelectionDetail selection={selection} onSelect={focus} />
+            </div>
+          )}
+          <DayList ref={setDayList} selection={selection} onSelect={focus} hidden={showingStop} />
         </BottomSheet>
       )}
     </>
