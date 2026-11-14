@@ -2,7 +2,7 @@ import type { LngLatBoundsLike } from 'mapbox-gl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
-import { DayScrubber } from './components/DayScrubber';
+import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
@@ -32,6 +32,7 @@ export function App() {
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
   const [dayList, setDayList] = useState<HTMLDivElement | null>(null);
   const listScroll = useRef(0);
+  const scrubber = useRef<ScrubberFollow>(null);
   /** The sheet's height around the last stop, to aim the camera before the next one is measured. */
   const lastFit = useRef<number | null>(null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
@@ -156,10 +157,11 @@ export function App() {
             sticky
             onPick={showDay}
             current={selection ? { selection, onBack: close } : undefined}
+            followRef={scrubber}
           />
           {selection && (
             <div className="motion-safe:animate-in motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] motion-safe:fade-in motion-safe:slide-in-from-right-12">
-              <SelectionDetail selection={selection} onSelect={focus} />
+              <SelectionDetail selection={selection} onSelect={focus} scrubber={scrubber} />
             </div>
           )}
           <DayList ref={setDayList} selection={selection} onSelect={focus} hidden={showingStop} />

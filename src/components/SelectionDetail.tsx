@@ -1,8 +1,9 @@
 import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { type MouseEvent, type PointerEvent, useRef } from 'react';
+import { type MouseEvent, type PointerEvent, type RefObject, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useSheetStretch } from '@/components/BottomSheet';
+import type { ScrubberFollow } from '@/components/DayScrubber';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { describe, ITINERARY, isSameSelection, type Selection } from '../data/derive';
@@ -10,6 +11,11 @@ import { describe, ITINERARY, isSameSelection, type Selection } from '../data/de
 interface Props {
   selection: Selection;
   onSelect: (selection: Selection) => void;
+}
+
+interface DetailProps extends Props {
+  /** A scrubber whose thumb moves along with swipes. */
+  scrubber?: RefObject<ScrubberFollow | null>;
 }
 
 /** Travel in px before a drag counts as horizontal; matches Base UI's drawer so the sheet and the swipe agree. */
@@ -44,7 +50,7 @@ const neighborsOf = (selection: Selection) => {
   return { prev: ITINERARY[i - 1], next: ITINERARY[i + 1] };
 };
 
-export function SelectionDetail({ selection, onSelect }: Props) {
+export function SelectionDetail({ selection, onSelect, scrubber }: DetailProps) {
   const { prev, next } = neighborsOf(selection);
   const trackRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -76,12 +82,14 @@ export function SelectionDetail({ selection, onSelect }: Props) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
       if (entering) settling.current = track.animate({ opacity: [0, 1] }, { duration: 150, easing: 'ease-out' });
       sheet?.settle(0, EASE);
+      scrubber?.current?.settle(0, EASE);
       return;
     }
     const speed = Math.max(-velocity * Math.sign(from), FLICK_SPEED);
     const duration = Math.min(Math.max((EASE_SLOPE * Math.abs(from)) / speed, MIN_SETTLE_MS), MAX_SETTLE_MS);
     settling.current = track.animate({ transform: [`translateX(${from}px)`, 'none'] }, { duration, easing: EASE });
     sheet?.settle(duration, EASE);
+    scrubber?.current?.settle(duration, EASE);
   };
 
   const startGesture = (e: PointerEvent<HTMLDivElement>) => {
@@ -93,6 +101,7 @@ export function SelectionDetail({ selection, onSelect }: Props) {
     const base = settling.current?.playState === 'running' ? new DOMMatrix(getComputedStyle(track).transform).m41 : 0;
     settling.current?.cancel();
     moveTo(track, base);
+    if (base) scrubber?.current?.follow(-base / e.currentTarget.offsetWidth);
     gesture.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -155,6 +164,7 @@ export function SelectionDetail({ selection, onSelect }: Props) {
     g.x = (x > 0 ? prev : next) ? x : x * RUBBER_BAND;
     moveTo(track, g.x);
     stretchTo(track, g.x);
+    scrubber?.current?.follow(-g.x / e.currentTarget.offsetWidth);
   };
 
   // A mouse drag ends in a click on whatever is under the pointer.

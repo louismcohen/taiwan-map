@@ -83,6 +83,13 @@
   }
 }
 
+/* Registered so the day scrubber can animate it (see DayScrubber). */
+@property --swipe {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 /* Mapbox renders this markup itself. */
 /* Above the selected marker, which StopMarkers raises to z-index 1. */
 .mapboxgl-popup {

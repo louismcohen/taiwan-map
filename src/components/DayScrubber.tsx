@@ -1,6 +1,16 @@
 import { ArrowLeft01Icon, BedIcon, Location01Icon, Train01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { cn } from '@/lib/utils';
 import {
   DAY_KEYS,
@@ -55,8 +65,46 @@ function fromBar(day: DayKey, barProgress: number) {
 /** Trailing gap that a day's slots run on through: all but the last day's. */
 const trailOf = (day: DayKey) => (day === LAST_DAY ? 0 : GAP);
 
+/** Sizes a day's segment to its slots less its trailing gap. */
+const flexOf = (day: DayKey) => `0 0 calc(${(STOP_COUNTS[day] / TOTAL_STOPS) * 100}% - ${trailOf(day)}px)`;
+
 /** A CSS length `barProgress` of the way through a segment's slots, trailing gap included. */
-const along = (day: DayKey, barProgress: number) => `calc(${barProgress} * (100% + ${trailOf(day)}px))`;
+const along = (day: DayKey, barProgress: number | string) => `calc(${barProgress} * (100% + ${trailOf(day)}px))`;
+
+/** Slots on the bar before each day's segment. */
+const SLOTS_BEFORE = Object.fromEntries(
+  DAY_KEYS.map((day, i) => [day, DAY_KEYS.slice(0, i).reduce((sum, d) => sum + STOP_COUNTS[d], 0)]),
+) as Record<DayKey, number>;
+
+/** Where a position through `day`'s rows falls on the bar, in slots from its start. */
+const slotAt = (day: DayKey, rowProgress: number) => SLOTS_BEFORE[day] + toBar(day, rowProgress) * STOP_COUNTS[day];
+
+/**
+ * The thumb's position in slots, in CSS: `--at` is where React last put it, and `--swipe` (registered
+ * in styles.css so it can animate) is how far a swipe has moved it from there.
+ */
+const POS = '(var(--at) + var(--swipe))';
+const GLIDE_MS = 300;
+const GLIDE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
+/** The thumb's offset from `--at` as now on screen, mid-glide included. */
+const offsetOf = (bar: HTMLElement) => Number.parseFloat(getComputedStyle(bar).getPropertyValue('--swipe')) || 0;
+
+/** Eases the thumb from `from` slots off `--at` to rest there. */
+function glide(bar: HTMLElement, from: number, duration: number, easing: string) {
+  for (const animation of bar.getAnimations()) animation.cancel();
+  bar.style.removeProperty('--swipe');
+  if (!from || !duration || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  bar.animate({ '--swipe': [String(from), '0'] }, { duration, easing });
+}
+
+/** Lets a swipe between waypoints carry the thumb along with it. */
+export interface ScrubberFollow {
+  /** Moves the thumb `progress` of the way to the next waypoint, or the previous one if negative. */
+  follow: (progress: number) => void;
+  /** Eases the thumb from where it is to the current waypoint over `duration` ms. */
+  settle: (duration: number, easing: string) => void;
+}
 
 const overnight = (day: DayKey) => {
   const towns = NIGHTS[day];
@@ -65,7 +113,7 @@ const overnight = (day: DayKey) => {
 
 const dayOf = (sel: Selection) => (sel.kind === 'stop' ? sel.stop.day : sel.day);
 
-/** Where `sel` sits among its day's rows, as the middle of its share of the day's segment. */
+/** Where `sel` sits among its day's rows, as the middle of its row. */
 function positionOf(sel: Selection) {
   const day = dayOf(sel);
   const rows = ITINERARY.filter((s) => dayOf(s) === day);
@@ -85,11 +133,18 @@ interface Props {
   onPick?: (day: DayKey) => void;
   /** A stop shown in place of the list: the bar marks it, and the summary row leads back to the list. */
   current?: { selection: Selection; onBack: () => void };
+  followRef?: Ref<ScrubberFollow>;
 }
 
+const slotOf = (sel: Selection) => {
+  const { day, progress } = positionOf(sel);
+  return slotAt(day, progress);
+};
+
 /** The current day, a bar to scrub through the whole trip, and the day's stop count and overnight. */
-export function DayScrubber({ list, routes, sticky = false, onPick, current }: Props) {
+export function DayScrubber({ list, routes, sticky = false, onPick, current, followRef }: Props) {
   const [root, setRoot] = useState<HTMLElement | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const segments = useRef<Partial<Record<DayKey, HTMLDivElement | null>>>({});
   const { position: scrolled, scrollToDay, scrubTo } = useDayScroll(list, sticky ? root : null);
   const shown = current && positionOf(current.selection);
@@ -112,10 +167,35 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current }: P
   const { name, color } = DAYS[day];
   const stops = STOP_COUNTS[day];
   const town = overnight(day);
-  const before = DAY_KEYS.slice(0, index).reduce((sum, d) => sum + STOP_COUNTS[d], 0);
-  const bar = toBar(day, progress);
+  const at = slotAt(day, progress);
   const row = shown ? shown.index : Math.min(ROW_COUNTS[day] - 1, Math.floor(progress * ROW_COUNTS[day]));
   const onStop: NumberedStop | undefined = DAY_STOPS[day][row];
+  const showingStop = !!current;
+
+  // Moving between waypoints glides the thumb over from wherever it was; scrolling moves it directly.
+  const lastAt = useRef(at);
+  useLayoutEffect(() => {
+    const was = lastAt.current;
+    lastAt.current = at;
+    const bar = barRef.current;
+    if (was === at || !bar) return;
+    glide(bar, showingStop ? was + offsetOf(bar) - at : 0, GLIDE_MS, GLIDE_EASE);
+  }, [at, showingStop]);
+
+  useImperativeHandle(followRef, () => ({
+    follow: (progress) => {
+      const bar = barRef.current;
+      if (!bar || !current) return;
+      const i = ITINERARY.findIndex((s) => isSameSelection(s, current.selection));
+      const neighbor = ITINERARY[progress < 0 ? i - 1 : i + 1];
+      for (const animation of bar.getAnimations()) animation.cancel();
+      bar.style.setProperty('--swipe', String(neighbor ? Math.abs(progress) * (slotOf(neighbor) - at) : 0));
+    },
+    settle: (duration, easing) => {
+      const bar = barRef.current;
+      if (bar) glide(bar, offsetOf(bar), duration, easing);
+    },
+  }));
 
   const pick = (next: DayKey) => {
     onPick?.(next);
@@ -124,15 +204,17 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current }: P
 
   const scrub = (e: PointerEvent<HTMLDivElement>) => {
     const rects = DAY_KEYS.map((d) => segments.current[d]?.getBoundingClientRect());
-    const i = rects.findIndex((r) => r && e.clientX < r.right);
-    const target = i < 0 ? DAY_KEYS.length - 1 : i;
-    const rect = rects[target];
+    const i = rects.findIndex((r, j) => r && e.clientX < r.right + trailOf(DAY_KEYS[j]));
+    const target = DAY_KEYS[i < 0 ? DAY_KEYS.length - 1 : i];
+    const rect = rects[i < 0 ? DAY_KEYS.length - 1 : i];
     // Over a stop, the list is hidden; go back to it, at the touched day, and keep scrubbing there.
     if (current) {
-      pick(DAY_KEYS[target]);
+      pick(target);
       return;
     }
-    if (rect) scrubTo(DAY_KEYS[target], Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)));
+    if (!rect) return;
+    const barProgress = (e.clientX - rect.left) / (rect.width + trailOf(target));
+    scrubTo(target, fromBar(target, Math.min(1, Math.max(0, barProgress))));
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -174,10 +256,12 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current }: P
         aria-label="Position in trip"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round(((before + progress * WEIGHTS[day]) / TOTAL_WEIGHT) * 100)}
+        aria-valuenow={Math.round((at / TOTAL_STOPS) * 100)}
         aria-valuetext={`${name}, ${Math.round(progress * 100)}% through the day`}
         data-base-ui-swipe-ignore="x"
-        className="flex cursor-pointer touch-pan-y gap-[3px] rounded-sm py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        ref={barRef}
+        className="relative flex cursor-pointer touch-pan-y gap-[3px] rounded-sm py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        style={{ '--at': at } as CSSProperties}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           scrub(e);
@@ -187,49 +271,51 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current }: P
         }}
         onKeyDown={onKeyDown}
       >
-        {DAY_KEYS.map((d, i) => (
+        {DAY_KEYS.map((d) => (
           <div
             key={d}
             ref={(el) => {
               segments.current[d] = el;
             }}
             className="relative h-1.5 rounded-full bg-[color-mix(in_srgb,var(--c)_22%,transparent)]"
-            style={{ '--c': DAYS[d].hex, flex: `${WEIGHTS[d]} 1 0` } as CSSProperties}
+            style={{ '--c': DAYS[d].hex, flex: flexOf(d) } as CSSProperties}
           >
             <div className="absolute inset-0 overflow-hidden rounded-full">
               <div
-                className="h-full origin-left bg-(--c)"
-                style={{ transform: `scaleX(${i < index ? 1 : i === index ? progress : 0})` }}
+                className="h-full bg-(--c)"
+                style={{
+                  transform: `translateX(calc(${along(d, `clamp(0, (${POS} - ${SLOTS_BEFORE[d]}) / ${STOP_COUNTS[d]}, 1)`)} - 100%))`,
+                }}
               />
             </div>
             {DAY_STOPS[d].map((stop, j) => {
-              const left = (j + 0.5) / WEIGHTS[d];
+              const dot = SLOTS_BEFORE[d] + j + 0.5;
+              // Fully white once the thumb reaches the dot, and the day's tint before.
+              const passed = `clamp(0, (${POS} - ${dot}) * 1000 + 1, 1)`;
               return (
                 <div
                   key={stop.n}
-                  className={cn(
-                    'pointer-events-none absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-(--c)/45',
-                    (i < index || (i === index && left <= progress)) && 'bg-white/70',
-                  )}
-                  style={{ left: `${left * 100}%` }}
+                  className="pointer-events-none absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{
+                    left: along(d, (j + 0.5) / STOP_COUNTS[d]),
+                    background: `color-mix(in srgb, rgb(255 255 255 / 0.7) calc(${passed} * 100%), color-mix(in srgb, var(--c) 45%, transparent))`,
+                  }}
                 />
               );
             })}
-            {i === index && (
-              // Positioned with `left`: a full-width layer translated across would overflow the sheet sideways.
-              <div
-                className={cn(
-                  'pointer-events-none absolute top-1/2 grid size-3.5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-(--c) bg-white text-[10px] leading-none font-bold text-(--c) tabular-nums shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-[width,height] duration-150',
-                  onStop && 'size-5',
-                  onStop && !onStop.suggested && 'bg-(--c) text-white',
-                )}
-                style={{ left: `${progress * 100}%` }}
-              >
-                {onStop?.n}
-              </div>
-            )}
           </div>
         ))}
+        {/* Positioned with `left`: a full-width layer translated across would overflow the sheet sideways. */}
+        <div
+          className={cn(
+            'pointer-events-none absolute top-1/2 grid size-3.5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-(--c) bg-white text-[10px] leading-none font-bold text-(--c) tabular-nums shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-[width,height] duration-150',
+            onStop && 'size-5',
+            onStop && !onStop.suggested && 'bg-(--c) text-white',
+          )}
+          style={{ '--c': DAYS[day].hex, left: `calc(${POS} / ${TOTAL_STOPS} * 100%)` } as CSSProperties}
+        >
+          {onStop?.n}
+        </div>
       </div>
 
       <div className="flex gap-[3px]">
@@ -241,7 +327,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current }: P
               '-my-1 min-w-0 rounded-sm py-1 text-left text-[11px] font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring',
               d === day && 'text-(--c)',
             )}
-            style={{ '--c': DAYS[d].hex, flex: `${WEIGHTS[d]} 1 0` } as CSSProperties}
+            style={{ '--c': DAYS[d].hex, flex: flexOf(d) } as CSSProperties}
             aria-label={DAYS[d].name}
             aria-current={d === day || undefined}
             onClick={() => pick(d)}
