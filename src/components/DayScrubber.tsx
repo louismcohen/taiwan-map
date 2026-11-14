@@ -37,15 +37,14 @@ const ROW_COUNTS = Object.fromEntries(DAY_KEYS.map((day) => [day, STOP_COUNTS[da
   DayKey,
   number
 >;
-const TOTAL_STOPS = STOPS.length;
+const TOTAL_ROWS = DAY_KEYS.reduce((sum, day) => sum + ROW_COUNTS[day], 0);
 const LAST_DAY = DAY_KEYS[DAY_KEYS.length - 1];
 /** Space between day segments in px. Must match the bar's `gap-[3px]`. */
 const GAP = 3;
 
 /**
- * The bar gives every stop an equal slot, its dot in the middle; a day's places to stay share the
- * half-slot after its last dot. A day's slots run on through the gap that follows its segment, so
- * dots stay evenly spaced across days. Maps a position through the day's rows (0–1) onto its slots.
+ * Within its segment, a day gives every stop an equal slot, its dot in the middle; its places to stay
+ * share the half-slot after its last dot. Maps a position through the day's rows (0–1) onto its segment.
  */
 function toBar(day: DayKey, rowProgress: number) {
   const stops = STOP_COUNTS[day];
@@ -62,26 +61,29 @@ function fromBar(day: DayKey, barProgress: number) {
   return row / ROW_COUNTS[day];
 }
 
-/** Trailing gap that a day's slots run on through: all but the last day's. */
+/**
+ * Trailing gap that a day's segment runs on through: all but the last day's. The bar is then one
+ * continuous scale, in rows, that the thumb can cross days on.
+ */
 const trailOf = (day: DayKey) => (day === LAST_DAY ? 0 : GAP);
 
-/** Sizes a day's segment to its slots less its trailing gap. */
-const flexOf = (day: DayKey) => `0 0 calc(${(STOP_COUNTS[day] / TOTAL_STOPS) * 100}% - ${trailOf(day)}px)`;
+/** Segments are sized by each day's share of list rows, so dragging moves through the list evenly. */
+const flexOf = (day: DayKey) => `0 0 calc(${(ROW_COUNTS[day] / TOTAL_ROWS) * 100}% - ${trailOf(day)}px)`;
 
-/** A CSS length `barProgress` of the way through a segment's slots, trailing gap included. */
+/** A CSS length `barProgress` of the way through a segment, trailing gap included. */
 const along = (day: DayKey, barProgress: number | string) => `calc(${barProgress} * (100% + ${trailOf(day)}px))`;
 
-/** Slots on the bar before each day's segment. */
-const SLOTS_BEFORE = Object.fromEntries(
-  DAY_KEYS.map((day, i) => [day, DAY_KEYS.slice(0, i).reduce((sum, d) => sum + STOP_COUNTS[d], 0)]),
+/** Rows on the bar before each day's segment. */
+const ROWS_BEFORE = Object.fromEntries(
+  DAY_KEYS.map((day, i) => [day, DAY_KEYS.slice(0, i).reduce((sum, d) => sum + ROW_COUNTS[d], 0)]),
 ) as Record<DayKey, number>;
 
-/** Where a position through `day`'s rows falls on the bar, in slots from its start. */
-const slotAt = (day: DayKey, rowProgress: number) => SLOTS_BEFORE[day] + toBar(day, rowProgress) * STOP_COUNTS[day];
+/** Where a position through `day`'s rows falls on the bar, in rows from its start. */
+const barAt = (day: DayKey, rowProgress: number) => ROWS_BEFORE[day] + toBar(day, rowProgress) * ROW_COUNTS[day];
 
 /**
- * The thumb's position in slots, in CSS: `--at` is where React last put it, and `--swipe` (registered
- * in styles.css so it can animate) is how far a swipe has moved it from there.
+ * The thumb's position in rows along the bar, in CSS: `--at` is where React last put it, and `--swipe`
+ * (registered in styles.css so it can animate) is how far a swipe has moved it from there.
  */
 const POS = '(var(--at) + var(--swipe))';
 const GLIDE_MS = 300;
@@ -136,9 +138,9 @@ interface Props {
   followRef?: Ref<ScrubberFollow>;
 }
 
-const slotOf = (sel: Selection) => {
+const barOf = (sel: Selection) => {
   const { day, progress } = positionOf(sel);
-  return slotAt(day, progress);
+  return barAt(day, progress);
 };
 
 /** The current day, a bar to scrub through the whole trip, and the day's stop count and overnight. */
@@ -167,7 +169,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
   const { name, color } = DAYS[day];
   const stops = STOP_COUNTS[day];
   const town = overnight(day);
-  const at = slotAt(day, progress);
+  const at = barAt(day, progress);
   const row = shown ? shown.index : Math.min(ROW_COUNTS[day] - 1, Math.floor(progress * ROW_COUNTS[day]));
   const onStop: NumberedStop | undefined = DAY_STOPS[day][row];
   const showingStop = !!current;
@@ -189,7 +191,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
       const i = ITINERARY.findIndex((s) => isSameSelection(s, current.selection));
       const neighbor = ITINERARY[progress < 0 ? i - 1 : i + 1];
       for (const animation of bar.getAnimations()) animation.cancel();
-      bar.style.setProperty('--swipe', String(neighbor ? Math.abs(progress) * (slotOf(neighbor) - at) : 0));
+      bar.style.setProperty('--swipe', String(neighbor ? Math.abs(progress) * (barOf(neighbor) - at) : 0));
     },
     settle: (duration, easing) => {
       const bar = barRef.current;
@@ -256,7 +258,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
         aria-label="Position in trip"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round((at / TOTAL_STOPS) * 100)}
+        aria-valuenow={Math.round((at / TOTAL_ROWS) * 100)}
         aria-valuetext={`${name}, ${Math.round(progress * 100)}% through the day`}
         data-base-ui-swipe-ignore="x"
         ref={barRef}
@@ -284,12 +286,13 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
               <div
                 className="h-full bg-(--c)"
                 style={{
-                  transform: `translateX(calc(${along(d, `clamp(0, (${POS} - ${SLOTS_BEFORE[d]}) / ${STOP_COUNTS[d]}, 1)`)} - 100%))`,
+                  // Capped at 0: past the segment's end, in its trailing gap, it stays full rather than sliding off the left.
+                  transform: `translateX(min(0px, ${along(d, `clamp(0, (${POS} - ${ROWS_BEFORE[d]}) / ${ROW_COUNTS[d]}, 1)`)} - 100%))`,
                 }}
               />
             </div>
             {DAY_STOPS[d].map((stop, j) => {
-              const dot = SLOTS_BEFORE[d] + j + 0.5;
+              const dot = ROWS_BEFORE[d] + ((j + 0.5) / STOP_COUNTS[d]) * ROW_COUNTS[d];
               // Fully white once the thumb reaches the dot, and the day's tint before.
               const passed = `clamp(0, (${POS} - ${dot}) * 1000 + 1, 1)`;
               return (
@@ -312,7 +315,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
             onStop && 'size-5',
             onStop && !onStop.suggested && 'bg-(--c) text-white',
           )}
-          style={{ '--c': DAYS[day].hex, left: `calc(${POS} / ${TOTAL_STOPS} * 100%)` } as CSSProperties}
+          style={{ '--c': DAYS[day].hex, left: `calc(${POS} / ${TOTAL_ROWS} * 100%)` } as CSSProperties}
         >
           {onStop?.n}
         </div>
