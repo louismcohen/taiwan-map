@@ -1,14 +1,21 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import type { Drawer as DrawerPrimitive } from '@base-ui/react/drawer';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { cn } from '@/lib/utils';
 
 export type Snap = 'peek' | 'half' | 'full';
 export type SheetHeights = Record<Snap, number>;
 
-const SNAPS: Snap[] = ['peek', 'half', 'full'];
 /** Share of the full sheet height shown at the middle snap. */
 const HALF_RATIO = 0.55;
-const DRAG_SLOP = 6;
-/** How far ahead (ms) the release velocity is projected when choosing where to settle. */
-const FLING_MS = 180;
+/** Base UI treats 1 as the popup's full height and only marks that snap point `data-expanded`. */
+const FULL = 1;
+/**
+ * Base UI damps drags past the top but lets the sheet follow the finger below `peek`, where it
+ * would be dismissing. Resist there at 30% instead, since this sheet never closes.
+ */
+const RUBBER_BAND_Y =
+  'calc(var(--drawer-snap-point-offset) + min(var(--drawer-swipe-movement-y), calc(var(--room) + (var(--drawer-swipe-movement-y) - var(--room)) * 0.3)))';
 
 interface Props {
   snap: Snap;
@@ -17,22 +24,6 @@ interface Props {
   header: ReactNode;
   children: ReactNode;
 }
-
-interface Drag {
-  startY: number;
-  base: number;
-  offset: number;
-  lastY: number;
-  lastT: number;
-  velocity: number;
-  inBody: boolean;
-  /** A tap here (no drag) on the collapsed sheet expands it. */
-  tapExpands: boolean;
-  mode: 'pending' | 'drag' | 'scroll';
-}
-
-const rubberBand = (v: number, min: number, max: number) =>
-  v < min ? min + (v - min) * 0.3 : v > max ? max + (v - max) * 0.3 : v;
 
 // A drag that ends over a row would otherwise select it.
 function swallowNextClick() {
@@ -45,169 +36,106 @@ function swallowNextClick() {
 }
 
 /**
- * Panel sized by CSS to its fully expanded height, translated down so only `heights[snap]`
- * shows. The body scrolls only when fully expanded; otherwise any vertical drag moves the sheet.
+ * Always-open, non-modal drawer that snaps between `peek` (just the header), `half` and `full`.
+ * The body scrolls only when fully expanded; otherwise any vertical drag moves the sheet.
  */
 export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, children }: Props) {
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const headRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ full: 0, head: 0, safeBottom: 0 });
+  // The popup mounts through a portal, so it may not exist on the first layout pass.
+  const [popup, setPopup] = useState<HTMLDivElement | null>(null);
+  const [head, setHead] = useState<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ full: 0, headBottom: 0, safeBottom: 0 });
+  const [animated, setAnimated] = useState(false);
 
   const { full } = size;
-  const peek = Math.min(size.head + size.safeBottom, full);
+  const peek = Math.min(size.headBottom + size.safeBottom, full);
   const half = Math.min(Math.max(Math.round(full * HALF_RATIO), peek), full);
 
-  const latest = useRef({ snap, heights: { peek, half, full }, onSnapChange });
   useLayoutEffect(() => {
-    latest.current = { snap, heights: { peek, half, full }, onSnapChange };
-  });
-
-  useLayoutEffect(() => {
-    const sheet = sheetRef.current;
-    const head = headRef.current;
-    if (!sheet || !head) return;
+    if (!popup || !head) return;
     const measure = () =>
       setSize({
-        full: sheet.offsetHeight,
-        head: head.offsetHeight,
-        safeBottom: Number.parseFloat(getComputedStyle(sheet).paddingBottom) || 0,
+        full: popup.offsetHeight,
+        headBottom: popup.clientTop + head.offsetTop + head.offsetHeight,
+        safeBottom: Number.parseFloat(getComputedStyle(popup).paddingBottom) || 0,
       });
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(sheet);
+    observer.observe(popup);
     observer.observe(head);
     return () => observer.disconnect();
-  }, []);
+  }, [popup, head]);
 
-  // Skip the slide-in on first paint.
   useLayoutEffect(() => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    sheet.classList.add('dragging');
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.remove('dragging')));
+    if (full) onHeightsChange({ peek, half, full });
+  }, [peek, half, full, onHeightsChange]);
+
+  // Until the first measurement the popup sits fully open; don't animate it down to `peek`.
+  useLayoutEffect(() => {
+    if (!full || animated) return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setAnimated(true)));
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [full, animated]);
 
-  useLayoutEffect(() => {
-    const sheet = sheetRef.current;
-    if (!sheet || !full) return;
-    const heights = { peek, half, full };
-    sheet.style.transform = `translateY(${full - heights[snap]}px)`;
-    onHeightsChange(heights);
-  }, [snap, peek, half, full, onHeightsChange]);
+  const snapValue = (s: Snap) => (s === 'full' ? FULL : s === 'half' ? half : peek);
 
-  useEffect(() => {
-    const sheet = sheetRef.current;
-    const head = headRef.current;
-    const body = bodyRef.current;
-    if (!sheet || !head || !body) return;
-    let drag: Drag | null = null;
+  const handleSnapPointChange = (
+    value: DrawerPrimitive.Root.SnapPoint | null,
+    details: DrawerPrimitive.Root.SnapPointChangeEventDetails,
+  ) => {
+    if (details.reason === 'swipe') swallowNextClick();
+    // `null` means a swipe past the lowest snap point, which would close the drawer.
+    if (value === null) {
+      details.cancel();
+      if (snap !== 'peek') onSnapChange('peek');
+      return;
+    }
+    const next: Snap = value === FULL ? 'full' : value === peek ? 'peek' : 'half';
+    if (next !== snap) onSnapChange(next);
+  };
 
-    const place = (offset: number) => {
-      sheet.style.transform = `translateY(${offset}px)`;
-    };
-
-    const begin = (y: number, target: EventTarget | null) => {
-      const base = new DOMMatrixReadOnly(getComputedStyle(sheet).transform).m42;
-      const el = target instanceof Element ? target : null;
-      drag = {
-        startY: y, base, offset: base, lastY: y, lastT: performance.now(), velocity: 0,
-        inBody: !!el && body.contains(el),
-        // Controls in the header handle their own taps.
-        tapExpands: !!el && head.contains(el) && !el.closest('button, a'),
-        mode: 'pending',
-      };
-    };
-
-    const move = (y: number) => {
-      if (!drag || drag.mode === 'scroll') return false;
-      const dy = y - drag.startY;
-      if (drag.mode === 'pending') {
-        if (Math.abs(dy) < DRAG_SLOP) return false;
-        if (drag.inBody && latest.current.snap === 'full' && (body.scrollTop > 0 || dy < 0)) {
-          drag.mode = 'scroll';
-          return false;
-        }
-        drag.mode = 'drag';
-        sheet.classList.add('dragging');
-      }
-      const now = performance.now();
-      drag.velocity = (y - drag.lastY) / Math.max(1, now - drag.lastT);
-      drag.lastY = y;
-      drag.lastT = now;
-      const { heights } = latest.current;
-      drag.offset = rubberBand(drag.base + dy, 0, heights.full - heights.peek);
-      place(drag.offset);
-      return true;
-    };
-
-    const end = (released: boolean) => {
-      const d = drag;
-      drag = null;
-      const { heights, snap, onSnapChange } = latest.current;
-      if (d?.mode === 'pending' && released && d.tapExpands && snap === 'peek') onSnapChange('half');
-      if (d?.mode !== 'drag') return;
-      sheet.classList.remove('dragging');
-      const projected = heights.full - (d.offset + d.velocity * FLING_MS);
-      const target = SNAPS.reduce((a, b) => (Math.abs(heights[b] - projected) < Math.abs(heights[a] - projected) ? b : a));
-      place(heights.full - heights[target]);
-      if (target !== snap) onSnapChange(target);
-      swallowNextClick();
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) begin(e.touches[0].clientY, e.target);
-      else end(false);
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 1 && move(e.touches[0].clientY) && e.cancelable) e.preventDefault();
-    };
-    const onTouchEnd = () => end(true);
-    const onTouchCancel = () => end(false);
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (move(e.clientY)) e.preventDefault();
-    };
-    const onPointerUp = () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      end(true);
-    };
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      begin(e.clientY, e.target);
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp, { once: true });
-    };
-
-    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
-    sheet.addEventListener('touchmove', onTouchMove, { passive: false });
-    sheet.addEventListener('touchend', onTouchEnd);
-    sheet.addEventListener('touchcancel', onTouchCancel);
-    sheet.addEventListener('pointerdown', onPointerDown);
-    return () => {
-      sheet.removeEventListener('touchstart', onTouchStart);
-      sheet.removeEventListener('touchmove', onTouchMove);
-      sheet.removeEventListener('touchend', onTouchEnd);
-      sheet.removeEventListener('touchcancel', onTouchCancel);
-      sheet.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-  }, []);
+  const expandFromPeek = (e: MouseEvent) => {
+    if (snap === 'peek' && !(e.target as Element).closest('button, a')) onSnapChange('half');
+  };
 
   return (
-    <div ref={sheetRef} className="sheet" data-snap={snap}>
-      <div ref={headRef} className="sheet-head">
-        <button
-          type="button"
-          className="sheet-handle"
-          aria-label={snap === 'peek' ? 'Expand itinerary' : 'Collapse itinerary'}
-          onClick={() => onSnapChange(snap === 'peek' ? 'half' : 'peek')}
-        />
-        {header}
-      </div>
-      <div ref={bodyRef} className="sheet-body">{children}</div>
-    </div>
+    <Drawer
+      open
+      onOpenChange={(open, details) => {
+        if (!open) details.cancel();
+      }}
+      modal={false}
+      disablePointerDismissal
+      snapPoints={full ? [peek, half, FULL] : undefined}
+      snapPoint={full ? snapValue(snap) : null}
+      onSnapPointChange={handleSnapPointChange}
+    >
+      {/* Fully expanded, the sheet leaves a strip of map showing below the status bar / Dynamic Island. */}
+      <DrawerContent
+        ref={setPopup}
+        aria-label="Itinerary"
+        initialFocus={false}
+        style={{
+          '--room': `calc(${full - peek}px - var(--drawer-snap-point-offset))`,
+          '--translate-y': RUBBER_BAND_Y,
+        } as CSSProperties}
+        className={cn(
+          'h-[calc(100dvh-env(safe-area-inset-top)-56px)] max-h-none bg-background pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.12)] duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          !animated && 'transition-none',
+        )}
+      >
+        <div ref={setHead} className="shrink-0 border-b select-none" onClick={expandFromPeek}>
+          <button
+            type="button"
+            className="block h-4 w-full cursor-grab before:mx-auto before:mt-1.5 before:block before:h-1 before:w-9 before:rounded-full before:bg-[#d6d1c7]"
+            aria-label={snap === 'peek' ? 'Expand itinerary' : 'Collapse itinerary'}
+            onClick={() => onSnapChange(snap === 'peek' ? 'half' : 'peek')}
+          />
+          {header}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-hidden overscroll-contain group-data-expanded/drawer-popup:overflow-y-auto">
+          {children}
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }

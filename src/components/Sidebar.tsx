@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { DAY_KEYS, type Selection } from '../data/derive';
 import { DAYS, type DayKey } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
@@ -25,10 +27,12 @@ function totalsText(routes: RouteResult[] | null) {
 
 export function TripHeader({ routes, children }: { routes: RouteResult[] | null; children?: ReactNode }) {
   return (
-    <header>
-      <h1>East Rift &amp; Coast by Scooter</h1>
-      <p>Taitung → Hualien · Wed–Sat · outlined stops are suggested additions</p>
-      <div id="totals">{totalsText(routes)}</div>
+    <header className="px-[22px] pt-6 pb-4 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-0.5 in-data-[slot=drawer-popup]:pb-3">
+      <h1 className="mb-1 text-xl font-bold tracking-[-0.01em] in-data-[slot=drawer-popup]:text-[17px]">
+        East Rift &amp; Coast by Scooter
+      </h1>
+      <p className="text-[13px] text-muted-foreground">Taitung → Hualien · Wed–Sat · outlined stops are suggested additions</p>
+      <div className="mt-2.5 text-[13px] font-semibold">{totalsText(routes)}</div>
       {children}
     </header>
   );
@@ -36,17 +40,18 @@ export function TripHeader({ routes, children }: { routes: RouteResult[] | null;
 
 export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
   return (
-    <div className="day-chips">
+    <div className="mt-2.5 flex gap-1.5">
       {DAY_KEYS.map((day) => (
-        <button
-          type="button"
+        <Button
           key={day}
-          className="day-chip"
+          variant="outline"
+          size="sm"
+          className="h-auto gap-[5px] rounded-full bg-card px-[9px] py-1 text-xs font-semibold before:size-[7px] before:rounded-full before:bg-(--c)"
           style={{ '--c': DAYS[day].hex } as CSSProperties}
           onClick={() => onPick(day)}
         >
           {DAYS[day].name.slice(0, 3)}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -54,7 +59,7 @@ export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
 
 export function DayList({ selection, onSelect, routes }: Props) {
   return (
-    <div id="days">
+    <div>
       {DAY_KEYS.map((day) => (
         <DaySection
           key={day}
@@ -70,8 +75,9 @@ export function DayList({ selection, onSelect, routes }: Props) {
 
 export function Sidebar(props: Props) {
   return (
-    <aside id="sidebar">
+    <aside className="h-full w-[380px] shrink-0 overflow-y-auto border-r bg-background">
       <TripHeader routes={props.routes} />
+      <Separator />
       <DayList {...props} />
     </aside>
   );

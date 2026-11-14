@@ -17,12 +17,14 @@ export function InfoPopup({ selection }: { selection: Selection }) {
       closeButton={false}
       closeOnClick={false}
     >
-      <div className="popup">
-        <div className="label" style={{ color }}>{label}</div>
-        <h3>{title}</h3>
-        <p>{body}</p>
-        {href && <a href={href} target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>}
-      </div>
+      <div className="mb-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>{label}</div>
+      <h3 className="mb-1.5 text-[15px] font-bold">{title}</h3>
+      <p className="mb-2.5 text-[13px] leading-[1.45] text-muted-foreground">{body}</p>
+      {href && (
+        <a className="text-[13px] font-semibold text-foreground underline" href={href} target="_blank" rel="noopener noreferrer">
+          Open in Google Maps ↗
+        </a>
+      )}
     </Popup>
   );
 }

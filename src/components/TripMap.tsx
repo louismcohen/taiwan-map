@@ -40,7 +40,7 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
   };
 
   return (
-    <div id="map" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
+    <div id="map" className="h-full flex-1" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
       <MapGL
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
