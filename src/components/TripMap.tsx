@@ -1,7 +1,8 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useState, type Ref } from 'react';
+import type { PaddingOptions } from 'mapbox-gl';
+import { useState, type CSSProperties, type Ref } from 'react';
 import Map, { NavigationControl, ScaleControl, type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
-import { TOWNS, TRIP_BOUNDS, TRIP_PADDING, isSameSelection, type Selection } from '../data/derive';
+import { TOWNS, TRIP_BOUNDS, isSameSelection, type Selection } from '../data/derive';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';
@@ -15,11 +16,17 @@ interface Props {
   onSelect: (selection: Selection | null) => void;
   onReset: () => void;
   routes: RouteResult[] | null;
+  /** Off on phones, where the bottom sheet shows the selection instead. */
+  popups: boolean;
+  /** Only read when the map is created. */
+  initialPadding: PaddingOptions;
+  /** Height of UI covering the bottom of the map; bottom controls sit above it. */
+  bottomInset: number;
 }
 
 const INTERACTIVE_LAYERS = [STAY_FILL_LAYER];
 
-export function TripMap({ mapRef, selection, onSelect, onReset, routes }: Props) {
+export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, initialPadding, bottomInset }: Props) {
   const [cursor, setCursor] = useState('');
 
   const handleClick = (e: MapMouseEvent) => {
@@ -33,12 +40,12 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes }: Props)
   };
 
   return (
-    <div id="map">
+    <div id="map" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
-        initialViewState={{ bounds: TRIP_BOUNDS, fitBoundsOptions: { padding: TRIP_PADDING } }}
+        initialViewState={{ bounds: TRIP_BOUNDS, fitBoundsOptions: { padding: initialPadding } }}
         interactiveLayerIds={INTERACTIVE_LAYERS}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
@@ -50,11 +57,12 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes }: Props)
         <StayZones />
         {routes && <RouteLayers routes={routes} />}
         <StopMarkers
+          selected={selection?.kind === 'stop' ? selection.stop : null}
           onClick={(stop) =>
             isSameSelection(selection, { kind: 'stop', stop }) ? onReset() : onSelect({ kind: 'stop', stop })
           }
         />
-        {selection && <InfoPopup selection={selection} />}
+        {popups && selection && <InfoPopup selection={selection} />}
       </Map>
     </div>
   );

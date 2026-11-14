@@ -1,5 +1,7 @@
+import type { LngLatBoundsLike } from 'mapbox-gl';
+import { gmapsUrl } from '../lib/format';
 import { boundsOf } from '../lib/geo';
-import { DAYS, NIGHTS, STOPS as TRIP_STOPS, type DayKey, type Stop, type Town } from './trip';
+import { DAYS, NIGHTS, NIGHT_NAMES, STOPS as TRIP_STOPS, type DayKey, type Stop, type Town } from './trip';
 
 export type NumberedStop = Stop & { n: number };
 
@@ -36,8 +38,31 @@ export const TOWNS: TownEntry[] = DAY_KEYS.flatMap((day) => NIGHTS[day].map((tow
 export const TRIP_BOUNDS = boundsOf(STOPS);
 export const TRIP_PADDING = 60;
 
+export const DAY_BOUNDS = Object.fromEntries(
+  DAY_KEYS.map((day) => [day, boundsOf([...STOPS.filter((s) => s.day === day), ...NIGHTS[day]])]),
+) as Record<DayKey, LngLatBoundsLike>;
+
+/** Everything selectable, in sidebar order: each day's stops, then its places to stay. */
+export const ITINERARY: Selection[] = DAY_KEYS.flatMap((day) => [
+  ...STOPS.filter((s) => s.day === day).map((stop): Selection => ({ kind: 'stop', stop })),
+  ...NIGHTS[day].map((town): Selection => ({ kind: 'town', town, day })),
+]);
+
 export const isSameSelection = (a: Selection | null, b: Selection) =>
   a?.kind === 'stop' ? b.kind === 'stop' && a.stop === b.stop : a?.kind === 'town' && b.kind === 'town' && a.town === b.town;
+
+export const pointOf = (sel: Selection): [number, number] =>
+  sel.kind === 'stop' ? [sel.stop.lng, sel.stop.lat] : sel.at ?? [sel.town.lng, sel.town.lat];
+
+export function describe(sel: Selection) {
+  if (sel.kind === 'stop') {
+    const { stop } = sel;
+    const day = DAYS[stop.day];
+    return { color: day.hex, label: `${day.name} · ${stop.label}`, title: stop.name, body: stop.desc, href: gmapsUrl(stop) };
+  }
+  const { town, day } = sel;
+  return { color: DAYS[day].hex, label: `${NIGHT_NAMES[day]} · ${town.tag}`, title: town.name, body: town.note, href: undefined };
+}
 
 const PRIMARY_TAGS = new Set(['Booked', 'Recommended']);
 export const isPrimary = (town: Town) => PRIMARY_TAGS.has(town.tag);

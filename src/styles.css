@@ -38,14 +38,42 @@ header p { margin: 0; color: var(--muted); font-size: 13px; }
 .marker { background: var(--c); }
 .marker.stay { border-radius: 8px; }
 .marker.suggested { width: 24px; height: 24px; font-size: 11px; background: #fff; color: var(--c); border: 2.5px solid var(--c); box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.marker.selected { box-shadow: 0 0 0 2.5px var(--c), 0 2px 8px rgba(0,0,0,0.4); }
 .mapboxgl-popup-content { border-radius: 12px; padding: 14px 16px; max-width: 280px; font-family: inherit; }
 .popup .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
 .popup h3 { margin: 0 0 6px; font-size: 15px; }
 .popup p { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--muted); }
 .popup a { font-size: 13px; font-weight: 600; color: var(--ink); }
 
+/* Bottom sheet; only rendered below the 760px breakpoint (see MOBILE_QUERY in App.tsx). */
 @media (max-width: 760px) {
-  #root { flex-direction: column-reverse; }
-  #sidebar { width: 100%; height: 45%; border-right: 0; border-top: 1px solid var(--line); }
-  #map { height: 55%; flex: none; }
+  body { overscroll-behavior: none; }
+  #map .mapboxgl-ctrl-top-right { top: env(safe-area-inset-top); }
+  #map .mapboxgl-ctrl-bottom-left, #map .mapboxgl-ctrl-bottom-right { bottom: var(--bottom-inset, 0px); transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
 }
+/* Fully expanded, the sheet leaves a strip of map showing below the status bar / Dynamic Island. */
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; height: calc(100dvh - env(safe-area-inset-top) - 56px); display: flex; flex-direction: column; overflow: hidden; background: var(--bg); border-radius: 14px 14px 0 0; box-shadow: 0 -1px 0 var(--line), 0 -4px 20px rgba(0,0,0,0.12); padding-bottom: env(safe-area-inset-bottom); touch-action: none; will-change: transform; transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+.sheet.dragging { transition: none; user-select: none; }
+.sheet-head { flex-shrink: 0; border-bottom: 1px solid var(--line); user-select: none; }
+.sheet-handle { display: block; width: 100%; height: 16px; padding: 0; border: 0; background: none; cursor: grab; }
+.sheet-handle::before { content: ''; display: block; width: 36px; height: 4px; margin: 6px auto 0; border-radius: 2px; background: #d6d1c7; }
+.sheet-body { flex: 1; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; }
+.sheet[data-snap="full"] .sheet-body { overflow-y: auto; touch-action: pan-y; }
+.sheet header { padding: 2px 16px 12px; border-bottom: 0; }
+.sheet header h1 { font-size: 17px; }
+.sheet .day { padding: 14px 16px 6px; }
+
+.day-chips { display: flex; gap: 6px; margin-top: 10px; }
+.day-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.day-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+
+.detail { padding: 2px 16px 10px; }
+.detail-top { display: flex; align-items: center; gap: 8px; }
+.detail .label { flex: 1; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.detail h3 { margin: 2px 0 4px; font-size: 16px; line-height: 1.3; }
+.detail p { margin: 0 0 8px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.detail-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; font-size: 13px; }
+.detail-actions a { margin-right: auto; font-weight: 600; color: var(--ink); }
+.close-btn { flex-shrink: 0; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: #efebe3; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; }
+.text-btn { padding: 3px 6px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.text-btn:disabled { color: #c9c4ba; cursor: default; }

@@ -22,7 +22,7 @@ export function DaySection({ day, route, selection, onSelect }: Props) {
   const towns = NIGHTS[day];
 
   return (
-    <section className="day">
+    <section className="day" id={`day-${day}`}>
       <div className="day-head">
         <h2 style={{ color }}>{name}</h2>
         <span className="stats">{statsText(route)}</span>

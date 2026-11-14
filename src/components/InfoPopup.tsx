@@ -1,47 +1,27 @@
 import { Popup } from 'react-map-gl/mapbox';
-import type { Selection } from '../data/derive';
-import { DAYS, NIGHT_NAMES } from '../data/trip';
-import { gmapsUrl } from '../lib/format';
+import { describe, pointOf, type Selection } from '../data/derive';
 
 // closeOnClick is off because TripMap's click handler decides what an empty-map click means.
 export function InfoPopup({ selection }: { selection: Selection }) {
-  if (selection.kind === 'stop') {
-    const { stop } = selection;
-    const day = DAYS[stop.day];
-    return (
-      <Popup
-        key={`stop-${stop.n}`}
-        longitude={stop.lng}
-        latitude={stop.lat}
-        offset={18}
-        closeButton={false}
-        closeOnClick={false}
-      >
-        <div className="popup">
-          <div className="label" style={{ color: day.hex }}>{day.name} · {stop.label}</div>
-          <h3>{stop.name}</h3>
-          <p>{stop.desc}</p>
-          <a href={gmapsUrl(stop)} target="_blank" rel="noopener">Open in Google Maps ↗</a>
-        </div>
-      </Popup>
-    );
-  }
+  const { color, label, title, body, href } = describe(selection);
+  const [lng, lat] = pointOf(selection);
+  const isStop = selection.kind === 'stop';
 
-  const { town, day, at } = selection;
-  const [lng, lat] = at ?? [town.lng, town.lat];
   return (
     <Popup
-      key={`town-${town.name}`}
+      key={isStop ? `stop-${selection.stop.n}` : `town-${selection.town.name}`}
       longitude={lng}
       latitude={lat}
-      maxWidth="280px"
+      offset={isStop ? 18 : undefined}
+      maxWidth={isStop ? undefined : '280px'}
       closeButton={false}
       closeOnClick={false}
     >
       <div className="popup">
-        <div className="label" style={{ color: DAYS[day].hex }}>{NIGHT_NAMES[day]} · {town.tag}</div>
-        <h3>{town.name}</h3>
-        <p>{town.note}</p>
+        <div className="label" style={{ color }}>{label}</div>
+        <h3>{title}</h3>
+        <p>{body}</p>
+        {href && <a href={href} target="_blank" rel="noopener">Open in Google Maps ↗</a>}
       </div>
     </Popup>
   );

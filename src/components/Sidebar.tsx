@@ -1,4 +1,6 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { DAY_KEYS, type Selection } from '../data/derive';
+import { DAYS, type DayKey } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
 import { fmtKm, fmtTime } from '../lib/format';
 import { DaySection } from './DaySection';
@@ -17,25 +19,55 @@ function totalsText(routes: RouteResult[] | null) {
   return `${fmtKm(dist)} total · ~${fmtTime(dur)} riding`;
 }
 
-export function Sidebar({ selection, onSelect, routes }: Props) {
+export function TripHeader({ routes, children }: { routes: RouteResult[] | null; children?: ReactNode }) {
+  return (
+    <header>
+      <h1>East Rift &amp; Coast by Scooter</h1>
+      <p>Taitung → Hualien · Wed–Sat · outlined stops are suggested additions</p>
+      <div id="totals">{totalsText(routes)}</div>
+      {children}
+    </header>
+  );
+}
+
+export function DayChips({ onPick }: { onPick: (day: DayKey) => void }) {
+  return (
+    <div className="day-chips">
+      {DAY_KEYS.map((day) => (
+        <button
+          key={day}
+          className="day-chip"
+          style={{ '--c': DAYS[day].hex } as CSSProperties}
+          onClick={() => onPick(day)}
+        >
+          {DAYS[day].name.slice(0, 3)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function DayList({ selection, onSelect, routes }: Props) {
+  return (
+    <div id="days">
+      {DAY_KEYS.map((day) => (
+        <DaySection
+          key={day}
+          day={day}
+          route={routes?.find((r) => r.day === day)}
+          selection={selection}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function Sidebar(props: Props) {
   return (
     <aside id="sidebar">
-      <header>
-        <h1>East Rift &amp; Coast by Scooter</h1>
-        <p>Taitung → Hualien · Wed–Sat · outlined stops are suggested additions</p>
-        <div id="totals">{totalsText(routes)}</div>
-      </header>
-      <div id="days">
-        {DAY_KEYS.map((day) => (
-          <DaySection
-            key={day}
-            day={day}
-            route={routes?.find((r) => r.day === day)}
-            selection={selection}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
+      <TripHeader routes={props.routes} />
+      <DayList {...props} />
     </aside>
   );
 }
