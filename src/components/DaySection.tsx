@@ -1,8 +1,17 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import {
+  BedIcon,
+  Bread01Icon,
+  Location01Icon,
+  Restaurant01Icon,
+  SparklesIcon,
+  Train01Icon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Item, ItemContent, ItemDescription, ItemMedia } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
 import { STOPS, isPrimary, type Selection } from '../data/derive';
-import { DAYS, NIGHTS, NIGHT_NAMES, type DayKey } from '../data/trip';
+import { DAYS, NIGHTS, NIGHT_NAMES, type DayKey, type Stop } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
 import { fmtKm, fmtTime } from '../lib/format';
 
@@ -20,6 +29,19 @@ function statsText(route: RouteResult | undefined) {
 }
 
 const overline = 'text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase';
+
+const LABEL_ICONS: Record<string, IconSvgElement> = {
+  Lunch: Restaurant01Icon,
+  Dinner: Restaurant01Icon,
+  Snack: Bread01Icon,
+};
+
+function stopIcon(stop: Stop) {
+  if (stop.stay) return BedIcon;
+  if (stop.final) return Train01Icon;
+  if (stop.suggested) return SparklesIcon;
+  return LABEL_ICONS[stop.label] ?? Location01Icon;
+}
 
 export function DaySection({ day, route, selection, onSelect }: Props) {
   const { name, color, hex, note } = DAYS[day];
@@ -53,6 +75,7 @@ export function DaySection({ day, route, selection, onSelect }: Props) {
             </div>
           }
           label={stop.label}
+          labelIcon={stopIcon(stop)}
           title={stop.name}
           body={stop.desc}
         />
@@ -97,11 +120,12 @@ interface RowProps {
   onClick: () => void;
   icon: ReactNode;
   label: string;
+  labelIcon?: IconSvgElement;
   title: string;
   body: string;
 }
 
-function Row({ active, onClick, icon, label, title, body }: RowProps) {
+function Row({ active, onClick, icon, label, labelIcon, title, body }: RowProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -118,7 +142,10 @@ function Row({ active, onClick, icon, label, title, body }: RowProps) {
     >
       <ItemMedia>{icon}</ItemMedia>
       <ItemContent className="min-w-0 gap-0">
-        <div className={cn(overline, 'mb-[3px]')}>{label}</div>
+        <div className={cn(overline, 'mb-[3px] flex items-center gap-1')}>
+          {labelIcon && <HugeiconsIcon icon={labelIcon} size={12} strokeWidth={2} className="shrink-0" />}
+          {label}
+        </div>
         <h3 className="mb-0.5 text-sm leading-[1.3] font-bold">
           {/* Stretched over the whole row so the row is one click target. */}
           <button

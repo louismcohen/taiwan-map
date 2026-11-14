@@ -34,6 +34,9 @@ export function App() {
     return s;
   };
 
+  // Keep whatever size the user dragged the sheet to; only lift it out of `peek` to show content.
+  const openSheet = () => moveSheet(snap === 'peek' ? 'half' : snap);
+
   const fit = (bounds: LngLatBoundsLike, s: Snap) =>
     mapRef.current?.fitBounds(bounds, { padding: padding(s, TRIP_PADDING), maxZoom: 12, retainPadding: false, essential: true });
 
@@ -51,7 +54,7 @@ export function App() {
     mapRef.current?.flyTo({
       center: pointOf(sel),
       zoom: sel.kind === 'stop' ? 13 : 12,
-      padding: padding(moveSheet('half')),
+      padding: padding(openSheet()),
       retainPadding: false,
       essential: true,
     });
@@ -61,7 +64,7 @@ export function App() {
   const selectOnMap = (sel: Selection | null) => {
     setSelection(sel);
     if (!isMobile) return;
-    const s = moveSheet(sel ? 'half' : 'peek');
+    const s = sel ? openSheet() : moveSheet('peek');
     const map = mapRef.current;
     if (!sel || !map) return;
     const point = pointOf(sel);
@@ -72,7 +75,7 @@ export function App() {
 
   const showDay = (day: DayKey) => {
     setSelection(null);
-    fit(DAY_BOUNDS[day], moveSheet('half'));
+    fit(DAY_BOUNDS[day], openSheet());
     requestAnimationFrame(() => document.getElementById(`day-${day}`)?.scrollIntoView({ block: 'start' }));
   };
 

@@ -81,6 +81,8 @@
 }
 
 /* Mapbox renders this markup itself. */
+/* Above the selected marker, which StopMarkers raises to z-index 1. */
+.mapboxgl-popup { z-index: 2; }
 .mapboxgl-popup-content { border-radius: 12px; padding: 14px 16px; max-width: 280px; font-family: inherit; }
 
 /* Only below the 760px breakpoint (see MOBILE_QUERY in App.tsx), where the bottom sheet covers the map. */

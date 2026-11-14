@@ -39,6 +39,8 @@ export interface Town {
   r: number;
   tag: TownTag;
   note: string;
+  /** Google Places search text for photos; falls back to `name`. */
+  query?: string;
 }
 
 export const DAYS: Record<DayKey, Day> = {
@@ -52,7 +54,7 @@ export const DAYS: Record<DayKey, Day> = {
 };
 
 export const STOPS: Stop[] = [
-  { day: 'wed', stay: true, lat: 22.7933, lng: 121.1234, name: 'Taitung Easy Stay Homestay (台東可可)', label: 'Night Stay',
+  { day: 'wed', stay: true, lat: 22.7669, lng: 121.1424, original: [22.7933, 121.1234], name: 'Taitung Easy Stay Homestay (台東可可)', label: 'Night Stay',
     desc: 'Highly rated modern boutique homestay in Taitung City featuring pristine cleanliness and convenient scooter parking.' },
 
   { day: 'thu', suggested: true, lat: 22.8106, lng: 121.1947, name: 'Jialulan Coastal Park', query: '加路蘭遊憩區', label: 'Suggested · On the way',
@@ -67,21 +69,21 @@ export const STOPS: Stop[] = [
     desc: 'Massive expanse of rice fields completely free of utility lines. Features the famous Takeshi Kaneshiro Tree.' },
   { day: 'thu', lat: 23.3333, lng: 121.3167, name: '馬蓋先美食玉里麵 (Yuli Noodles)', query: '馬蓋先美食玉里麵', label: 'Dinner',
     desc: 'Famous diner serving traditional oil-tossed Yuli dry noodles topped with aromatic shallot oil. About 10 minutes from the hotel.' },
-  { day: 'thu', stay: true, lat: 23.2956, lng: 121.3683, name: 'Antong Hot Spring Hotel', query: '安通溫泉飯店', label: 'Night Stay',
+  { day: 'thu', stay: true, lat: 23.2808, lng: 121.3420, original: [23.2956, 121.3683], name: 'Antong Hot Spring Hotel', query: '安通溫泉飯店', label: 'Night Stay',
     desc: 'Relaxing hot spring hotel nestled in the mountains right off the scenic cross-mountain Yuchang Highway.' },
 
   { day: 'fri', suggested: true, lat: 23.1225, lng: 121.4120, name: 'Sanxiantai (Eight-Arch Bridge)', query: '三仙台', label: 'Suggested · Short backtrack',
     desc: 'Offshore volcanic islet linked by a wave-shaped eight-arch footbridge — one of the signature sights of the east coast. Adds about 30 km south from where Hwy 30 meets the coast.' },
   { day: 'fri', suggested: true, lat: 23.4006, lng: 121.4878, name: 'Baxian Cave (八仙洞)', query: '八仙洞', label: 'Suggested · On the way',
     desc: 'Sea caves carved into a cliff now lifted well above the waves; one of the oldest prehistoric sites in Taiwan. Right on Hwy 11.' },
-  { day: 'fri', suggested: true, lat: 23.4655, lng: 121.5106, name: 'Changhong Bridge & Tropic of Cancer Marker', query: '長虹橋', label: 'Suggested · On the way',
+  { day: 'fri', suggested: true, lat: 23.4677, lng: 121.4889, original: [23.4655, 121.5106], name: 'Changhong Bridge & Tropic of Cancer Marker', query: '長虹橋', label: 'Suggested · On the way',
     desc: 'Red arch bridge over the mouth of the Xiuguluan River, with the white Tropic of Cancer monument at Jingpu a minute up the road.' },
   { day: 'fri', lat: 23.4877, lng: 121.5108, original: [23.2783, 121.4931], name: 'Shi Ti Ping (Stone Steps)', query: '石梯坪', label: 'Stop',
     desc: 'Spectacular wave-cut volcanic marine terraces. Park and explore the massive stone staircase steps over the Pacific.' },
   { day: 'fri', lat: 23.6558, lng: 121.4239, name: 'Hualien Tourism Sugar Factory (Guangfu)', query: '花蓮觀光糖廠', label: 'Stop',
     desc: 'Retro Japanese colonial-era refinery. A perfect highway rest stop famous for fresh milk ice cream cones.' },
 
-  { day: 'sat', suggested: true, lat: 23.6720, lng: 121.4250, name: 'Mataian Wetland (馬太鞍濕地)', query: '馬太鞍濕地', label: 'Suggested · On the way',
+  { day: 'sat', suggested: true, lat: 23.6578, lng: 121.4097, original: [23.6720, 121.4250], name: 'Mataian Wetland (馬太鞍濕地)', query: '馬太鞍濕地', label: 'Suggested · On the way',
     desc: 'Amis farming wetland of fish ponds, lotus and streams next to Guangfu, with local Amis restaurants. Nice slow morning start.' },
   { day: 'sat', suggested: true, lat: 23.9233, lng: 121.5050, name: 'Liyu Lake (鯉魚潭)', query: '鯉魚潭', label: 'Suggested · Small detour',
     desc: "Hualien's largest inland lake, ringed by forested mountains. Flat lakeside loop; a few km off Hwy 9." },
@@ -99,15 +101,15 @@ export const NIGHTS: Record<DayKey, Town[]> = {
       note: 'Laid-back surf village 30 km up the coast with cafés and live music. Gives you a head start on Thursday.' },
   ],
   thu: [
-    { name: 'Antong Hot Springs', lat: 23.2956, lng: 121.3683, r: 3, tag: 'Booked',
+    { name: 'Antong Hot Springs', lat: 23.2805, lng: 121.3425, r: 3, tag: 'Booked', query: '安通露天野溪溫泉',
       note: 'Your hot spring hotel. Quiet and rural, a short ride from Yuli for dinner.' },
-    { name: 'Yuli', lat: 23.3341, lng: 121.3147, r: 3, tag: 'Alternative',
+    { name: 'Yuli', lat: 23.3341, lng: 121.3147, r: 3, tag: 'Alternative', query: '玉里鎮',
       note: 'Market town with the most food and lodging in this stretch of the valley. Walk to dinner, and Hwy 30 starts right here on Friday.' },
   ],
   fri: [
-    { name: 'Guangfu / Mataian', lat: 23.6657, lng: 121.4236, r: 4.5, tag: 'Recommended',
+    { name: 'Guangfu / Mataian', lat: 23.6657, lng: 121.4236, r: 4.5, tag: 'Recommended', query: '光復鄉',
       note: 'Friday ends here, so no extra riding. Amis-run homestays around the wetland, with the sugar factory next door.' },
-    { name: 'Fenglin', lat: 23.7468, lng: 121.4509, r: 3.5, tag: 'Alternative',
+    { name: 'Fenglin', lat: 23.7468, lng: 121.4509, r: 3.5, tag: 'Alternative', query: 'Fenglin Township',
       note: 'Small Hakka "slow city" 10 km further north on Saturday\'s route, with more B&Bs and good Hakka food.' },
   ],
   sat: [],

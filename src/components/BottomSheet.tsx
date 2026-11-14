@@ -1,4 +1,12 @@
-import { useLayoutEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import type { Drawer as DrawerPrimitive } from '@base-ui/react/drawer';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
@@ -16,6 +24,8 @@ const FULL = 1;
  */
 const RUBBER_BAND_Y =
   'calc(var(--drawer-snap-point-offset) + min(var(--drawer-swipe-movement-y), calc(var(--room) + (var(--drawer-swipe-movement-y) - var(--room)) * 0.3)))';
+/** Finger travel in px below which a touch is still a tap. */
+const TAP_SLOP = 10;
 
 interface Props {
   snap: Snap;
@@ -45,6 +55,8 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
   const [head, setHead] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ full: 0, headBottom: 0, safeBottom: 0 });
   const [animated, setAnimated] = useState(false);
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
 
   const { full } = size;
   const peek = Math.min(size.headBottom + size.safeBottom, full);
@@ -82,7 +94,8 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
     value: DrawerPrimitive.Root.SnapPoint | null,
     details: DrawerPrimitive.Root.SnapPointChangeEventDetails,
   ) => {
-    if (details.reason === 'swipe') swallowNextClick();
+    // On touch, Base UI starts a swipe even on buttons and reports every release, taps included.
+    if (details.reason === 'swipe' && dragged.current) swallowNextClick();
     // `null` means a swipe past the lowest snap point, which would close the drawer.
     if (value === null) {
       details.cancel();
@@ -91,6 +104,16 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
     }
     const next: Snap = value === FULL ? 'full' : value === peek ? 'peek' : 'half';
     if (next !== snap) onSnapChange(next);
+  };
+
+  const trackPointerStart = (e: PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    dragged.current = false;
+  };
+
+  const trackPointerMove = (e: PointerEvent) => {
+    const start = pointerStart.current;
+    if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_SLOP) dragged.current = true;
   };
 
   const expandFromPeek = (e: MouseEvent) => {
@@ -114,6 +137,8 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, child
         ref={setPopup}
         aria-label="Itinerary"
         initialFocus={false}
+        onPointerDownCapture={trackPointerStart}
+        onPointerMoveCapture={trackPointerMove}
         style={{
           '--room': `calc(${full - peek}px - var(--drawer-snap-point-offset))`,
           '--translate-y': RUBBER_BAND_Y,
