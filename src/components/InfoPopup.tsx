@@ -19,6 +19,7 @@ export function InfoPopup({ selection }: { selection: Selection }) {
       maxWidth={isStop ? undefined : '280px'}
       closeButton={false}
       closeOnClick={false}
+      focusAfterOpen={false}
     >
       {photo && (
         <img
