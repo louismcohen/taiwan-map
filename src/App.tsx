@@ -2,8 +2,9 @@ import type { LngLatBoundsLike } from 'mapbox-gl';
 import { useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
+import { DayScrubber } from './components/DayScrubber';
 import { SelectionDetail } from './components/SelectionDetail';
-import { DayChips, DayList, Sidebar, TripHeader } from './components/Sidebar';
+import { DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
 import {
   DAY_BOUNDS,
@@ -15,7 +16,6 @@ import {
   TRIP_PADDING,
 } from './data/derive';
 import type { DayKey } from './data/trip';
-import { useDayScroll } from './hooks/useDayScroll';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useRoutes } from './hooks/useRoutes';
 
@@ -30,7 +30,7 @@ export function App() {
   const [snap, setSnap] = useState<Snap>('peek');
   const [sheetHeights, setSheetHeights] = useState<SheetHeights | null>(null);
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
-  const [activeDay, scrollToDay] = useDayScroll(sheetBody);
+  const [dayList, setDayList] = useState<HTMLDivElement | null>(null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const routes = useRoutes(SEGMENTS);
 
@@ -87,15 +87,15 @@ export function App() {
     }
   };
 
+  // The scrubber scrolls the list to the day itself.
   const showDay = (day: DayKey) => {
     setSelection(null);
     fit(DAY_BOUNDS[day], openSheet());
-    requestAnimationFrame(() => scrollToDay(day));
   };
 
   return (
     <>
-      {!isMobile && <Sidebar selection={selection} onSelect={focus} routes={routes} />}
+      {!isMobile && <Sidebar selection={selection} onSelect={focus} routes={routes} onPickDay={showDay} />}
       {/* On phones, wait for the sheet's first measurement so the opening view clears it. */}
       {(!isMobile || sheetHeights) && (
         <TripMap
@@ -116,16 +116,13 @@ export function App() {
           onHeightsChange={setSheetHeights}
           bodyRef={setSheetBody}
           header={
-            selection ? (
-              <SelectionDetail selection={selection} onSelect={focus} onClose={() => setSelection(null)} />
-            ) : (
-              <TripHeader routes={routes}>
-                <DayChips active={activeDay} onPick={showDay} />
-              </TripHeader>
-            )
+            selection && <SelectionDetail selection={selection} onSelect={focus} onClose={() => setSelection(null)} />
           }
+          peekTo={selection ? null : dayList}
         >
-          <DayList selection={selection} onSelect={focus} routes={routes} />
+          <TripHeader routes={routes} />
+          <DayScrubber list={sheetBody} routes={routes} sticky onPick={showDay} />
+          <DayList ref={setDayList} selection={selection} onSelect={focus} />
         </BottomSheet>
       )}
     </>

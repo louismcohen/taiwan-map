@@ -33,6 +33,8 @@ interface Props {
   onSnapChange: (snap: Snap) => void;
   onHeightsChange: (heights: SheetHeights) => void;
   header: ReactNode;
+  /** An element in `children` whose top marks where `peek` ends; without it, `peek` shows just the header. */
+  peekTo?: HTMLElement | null;
   /** The scrolling element that holds `children`. */
   bodyRef?: Ref<HTMLDivElement>;
   children: ReactNode;
@@ -49,36 +51,38 @@ function swallowNextClick() {
 }
 
 /**
- * Always-open, non-modal drawer that snaps between `peek` (just the header), `half` and `full`.
+ * Always-open, non-modal drawer that snaps between `peek` (the header, down to `peekTo`), `half` and `full`.
  * The body scrolls only when fully expanded; otherwise any vertical drag moves the sheet.
  */
-export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, bodyRef, children }: Props) {
+export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, peekTo, bodyRef, children }: Props) {
   // The popup mounts through a portal, so it may not exist on the first layout pass.
   const [popup, setPopup] = useState<HTMLDivElement | null>(null);
   const [head, setHead] = useState<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ full: 0, headBottom: 0, safeBottom: 0 });
+  const [size, setSize] = useState({ full: 0, peekBottom: 0, safeBottom: 0 });
   const [animated, setAnimated] = useState(false);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const dragged = useRef(false);
 
   const { full } = size;
-  const peek = Math.min(size.headBottom + size.safeBottom, full);
+  const peek = Math.min(size.peekBottom + size.safeBottom, full);
   const half = Math.min(Math.max(Math.round(full * HALF_RATIO), peek), full);
 
   useLayoutEffect(() => {
     if (!popup || !head) return;
+    // `peekTo.offsetTop` is relative to the positioned body, so it ignores how far the body is scrolled.
     const measure = () =>
       setSize({
         full: popup.offsetHeight,
-        headBottom: popup.clientTop + head.offsetTop + head.offsetHeight,
+        peekBottom: popup.clientTop + head.offsetTop + head.offsetHeight + (peekTo?.offsetTop ?? 0),
         safeBottom: Number.parseFloat(getComputedStyle(popup).paddingBottom) || 0,
       });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(popup);
     observer.observe(head);
+    for (let el = peekTo?.previousElementSibling; el; el = el.previousElementSibling) observer.observe(el);
     return () => observer.disconnect();
-  }, [popup, head]);
+  }, [popup, head, peekTo]);
 
   useLayoutEffect(() => {
     if (full) onHeightsChange({ peek, half, full });
@@ -142,6 +146,7 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, bodyR
         initialFocus={false}
         onPointerDownCapture={trackPointerStart}
         onPointerMoveCapture={trackPointerMove}
+        onClick={expandFromPeek}
         style={
           {
             '--room': `calc(${full - peek}px - var(--drawer-snap-point-offset))`,
@@ -153,11 +158,10 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, bodyR
           !animated && 'transition-none',
         )}
       >
-        {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: tap-anywhere shortcut; the handle button is the keyboard control */}
-        <div ref={setHead} className="shrink-0 border-b select-none" onClick={expandFromPeek}>
+        <div ref={setHead} className={cn('shrink-0 select-none', !!header && 'border-b')}>
           <button
             type="button"
-            className="block h-4 w-full cursor-grab before:mx-auto before:mt-1.5 before:block before:h-1 before:w-9 before:rounded-full before:bg-[#d6d1c7]"
+            className="block h-6 w-full cursor-grab before:mx-auto before:mt-2.5 before:block before:h-1 before:w-9 before:rounded-full before:bg-[#d6d1c7]"
             aria-label={snap === 'peek' ? 'Expand itinerary' : 'Collapse itinerary'}
             onClick={() => onSnapChange(snap === 'peek' ? 'half' : 'peek')}
           />
@@ -165,7 +169,7 @@ export function BottomSheet({ snap, onSnapChange, onHeightsChange, header, bodyR
         </div>
         <div
           ref={bodyRef}
-          className="min-h-0 flex-1 overflow-y-hidden overscroll-contain [container-type:size] group-data-expanded/drawer-popup:overflow-y-auto"
+          className="relative min-h-0 flex-1 overflow-y-hidden overscroll-contain group-data-expanded/drawer-popup:overflow-y-auto"
         >
           {children}
         </div>

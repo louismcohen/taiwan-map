@@ -1,65 +1,32 @@
-import {
-  BedIcon,
-  Bread01Icon,
-  Location01Icon,
-  Restaurant01Icon,
-  SparklesIcon,
-  Train01Icon,
-} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { type CSSProperties, type ReactNode, useEffect, useRef } from 'react';
 import { Item, ItemContent, ItemDescription, ItemMedia } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
 import { isPrimary, type Selection, STOPS } from '../data/derive';
-import { DAYS, type DayKey, NIGHT_NAMES, NIGHTS, type Stop } from '../data/trip';
-import type { RouteResult } from '../lib/directions';
-import { fmtKm, fmtTime } from '../lib/format';
+import { DAYS, type DayKey, NIGHT_NAMES, NIGHTS } from '../data/trip';
+import { stopIcon } from '../lib/stopIcon';
 
 interface Props {
   day: DayKey;
-  route: RouteResult | undefined;
   selection: Selection | null;
   onSelect: (selection: Selection) => void;
 }
 
-function statsText(route: RouteResult | undefined) {
-  if (!route) return '';
-  if (route.distance == null || route.duration == null) return 'route unavailable';
-  return `${fmtKm(route.distance)} · ${fmtTime(route.duration)}`;
-}
-
 const overline = 'text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase';
 
-const LABEL_ICONS: Record<string, IconSvgElement> = {
-  Lunch: Restaurant01Icon,
-  Dinner: Restaurant01Icon,
-  Snack: Bread01Icon,
-};
-
-function stopIcon(stop: Stop) {
-  if (stop.stay) return BedIcon;
-  if (stop.final) return Train01Icon;
-  if (stop.suggested) return SparklesIcon;
-  return LABEL_ICONS[stop.label] ?? Location01Icon;
-}
-
-export function DaySection({ day, route, selection, onSelect }: Props) {
+export function DaySection({ day, selection, onSelect }: Props) {
   const { name, color, hex, note } = DAYS[day];
   const towns = NIGHTS[day];
 
   return (
     <section
       id={`day-${day}`}
-      // In the sheet, the last day fills the list's height so scrolling to it can bring it to the top.
-      className="px-[22px] pt-4 pb-1.5 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-3.5 in-data-[slot=drawer-popup]:last:min-h-[100cqh]"
+      className="px-[22px] pt-4 pb-1.5 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-3.5"
     >
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-[13px] font-bold tracking-[0.08em] uppercase" style={{ color }}>
-          {name}
-        </h2>
-        <span className="text-xs text-muted-foreground tabular-nums">{statsText(route)}</span>
-      </div>
-      {note && <p className="-mt-0.5 mb-2 text-xs leading-[1.45] text-muted-foreground">{note}</p>}
+      {/* The day scrubber names the current day; the heading stays for screen reader navigation. */}
+      <h2 className="sr-only">{name}</h2>
+      <div aria-hidden className="mb-2.5 h-[3px] w-5 rounded-full" style={{ background: color }} />
+      {note && <p className="mb-2 text-xs leading-[1.45] text-muted-foreground">{note}</p>}
 
       {STOPS.filter((s) => s.day === day).map((stop) => (
         <Row

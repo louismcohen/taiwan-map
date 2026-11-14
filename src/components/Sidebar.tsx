@@ -1,11 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { type Ref, useState } from 'react';
 import { DAY_KEYS, type Selection } from '../data/derive';
-import { DAYS, type DayKey } from '../data/trip';
+import type { DayKey } from '../data/trip';
 import type { RouteResult } from '../lib/directions';
 import { fmtKm, fmtTime } from '../lib/format';
+import { DayScrubber } from './DayScrubber';
 import { DaySection } from './DaySection';
 
 interface Props {
@@ -26,9 +24,9 @@ function totalsText(routes: RouteResult[] | null) {
   return `${fmtKm(dist)} total · ~${fmtTime(dur)} riding`;
 }
 
-export function TripHeader({ routes, children }: { routes: RouteResult[] | null; children?: ReactNode }) {
+export function TripHeader({ routes }: { routes: RouteResult[] | null }) {
   return (
-    <header className="px-[22px] pt-6 pb-4 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-0.5 in-data-[slot=drawer-popup]:pb-3">
+    <header className="border-b px-[22px] pt-6 pb-4 in-data-[slot=drawer-popup]:px-4 in-data-[slot=drawer-popup]:pt-2 in-data-[slot=drawer-popup]:pb-4">
       <h1 className="mb-1 text-xl font-bold tracking-[-0.01em] in-data-[slot=drawer-popup]:text-[17px]">
         East Rift &amp; Coast by Scooter
       </h1>
@@ -36,56 +34,31 @@ export function TripHeader({ routes, children }: { routes: RouteResult[] | null;
         Taitung → Hualien · Wed–Sat · outlined stops are suggested additions
       </p>
       <div className="mt-2.5 text-[13px] font-semibold">{totalsText(routes)}</div>
-      {children}
     </header>
   );
 }
 
-export function DayChips({ active, onPick }: { active: DayKey; onPick: (day: DayKey) => void }) {
+export function DayList({
+  ref,
+  selection,
+  onSelect,
+}: Pick<Props, 'selection' | 'onSelect'> & { ref?: Ref<HTMLDivElement> }) {
   return (
-    <div className="mt-2.5 flex gap-1.5">
+    <div ref={ref}>
       {DAY_KEYS.map((day) => (
-        <Button
-          key={day}
-          variant="outline"
-          size="sm"
-          className={cn(
-            'h-auto gap-[5px] rounded-full bg-card px-[9px] py-1 text-xs font-semibold before:size-[7px] before:rounded-full before:bg-(--c)',
-            day === active && 'border-(--c) bg-(--c) text-white before:bg-white hover:bg-(--c) hover:text-white',
-          )}
-          style={{ '--c': DAYS[day].hex } as CSSProperties}
-          aria-current={day === active || undefined}
-          onClick={() => onPick(day)}
-        >
-          {DAYS[day].name.slice(0, 3)}
-        </Button>
+        <DaySection key={day} day={day} selection={selection} onSelect={onSelect} />
       ))}
     </div>
   );
 }
 
-export function DayList({ selection, onSelect, routes }: Props) {
+export function Sidebar({ selection, onSelect, routes, onPickDay }: Props & { onPickDay: (day: DayKey) => void }) {
+  const [list, setList] = useState<HTMLElement | null>(null);
   return (
-    <div>
-      {DAY_KEYS.map((day) => (
-        <DaySection
-          key={day}
-          day={day}
-          route={routes?.find((r) => r.day === day)}
-          selection={selection}
-          onSelect={onSelect}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function Sidebar(props: Props) {
-  return (
-    <aside className="h-full w-[380px] shrink-0 overflow-y-auto border-r bg-background">
-      <TripHeader routes={props.routes} />
-      <Separator />
-      <DayList {...props} />
+    <aside ref={setList} className="h-full w-[380px] shrink-0 overflow-y-auto border-r bg-background">
+      <TripHeader routes={routes} />
+      <DayScrubber list={list} routes={routes} sticky onPick={onPickDay} />
+      <DayList selection={selection} onSelect={onSelect} />
     </aside>
   );
 }
