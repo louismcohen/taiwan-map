@@ -1,39 +1,19 @@
 import type { FeatureCollection, Point, Polygon } from 'geojson';
+import { useMemo } from 'react';
 import { Layer, type LayerProps, Source } from 'react-map-gl/mapbox';
-import { isPrimary, TOWNS, type TownEntry } from '../data/derive';
-import { DAYS } from '../data/trip';
+import { isPrimary, type TownEntry } from '../data/derive';
+import { useTrip } from '../data/TripContext';
 import { circlePolygon, KM_PER_DEG_LAT } from '../lib/geo';
 
 export const STAY_FILL_LAYER = 'stay-fill';
 
-/** `i` indexes into TOWNS so click handlers can recover the town. */
-const props = ({ town, day }: TownEntry, i: number) => ({
+/** `i` indexes into towns so click handlers can recover the town. */
+const props = ({ town }: TownEntry, i: number, color: string) => ({
   i,
   name: town.name,
-  color: DAYS[day].hex,
+  color,
   primary: isPrimary(town),
 });
-
-const zones: FeatureCollection<Polygon> = {
-  type: 'FeatureCollection',
-  features: TOWNS.map((x, i) => ({
-    type: 'Feature',
-    properties: props(x, i),
-    geometry: circlePolygon(x.town.lng, x.town.lat, x.town.r),
-  })),
-};
-
-const labels: FeatureCollection<Point> = {
-  type: 'FeatureCollection',
-  features: TOWNS.map((x, i) => ({
-    type: 'Feature',
-    properties: {
-      ...props(x, i),
-      label: `${x.town.name}\n${DAYS[x.day].name} · ${x.town.tag.toLowerCase()}`,
-    },
-    geometry: { type: 'Point', coordinates: [x.town.lng, x.town.lat - x.town.r / KM_PER_DEG_LAT] },
-  })),
-};
 
 const fillLayer: LayerProps = {
   id: STAY_FILL_LAYER,
@@ -69,6 +49,31 @@ const labelLayer: LayerProps = {
 };
 
 export function StayZones() {
+  const { towns, days } = useTrip();
+
+  const { zones, labels } = useMemo(() => {
+    const zonesData: FeatureCollection<Polygon> = {
+      type: 'FeatureCollection',
+      features: towns.map((x, i) => ({
+        type: 'Feature',
+        properties: props(x, i, days[x.day].hex),
+        geometry: circlePolygon(x.town.lng, x.town.lat, x.town.r),
+      })),
+    };
+    const labelsData: FeatureCollection<Point> = {
+      type: 'FeatureCollection',
+      features: towns.map((x, i) => ({
+        type: 'Feature',
+        properties: {
+          ...props(x, i, days[x.day].hex),
+          label: `${x.town.name}\n${days[x.day].name} · ${x.town.tag.toLowerCase()}`,
+        },
+        geometry: { type: 'Point', coordinates: [x.town.lng, x.town.lat - x.town.r / KM_PER_DEG_LAT] },
+      })),
+    };
+    return { zones: zonesData, labels: labelsData };
+  }, [towns, days]);
+
   return (
     <>
       <Source id="stay-zones" type="geojson" data={zones}>

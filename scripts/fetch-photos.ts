@@ -7,7 +7,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { PHOTOS } from '../src/data/photos.ts';
-import { NIGHTS, STOPS } from '../src/data/trip.ts';
+import { allPhotoPlaces } from '../src/data/trip.ts';
 
 const KEY = process.env.GOOGLE_PLACES_KEY ?? '';
 const PER_PLACE = 3;
@@ -36,12 +36,13 @@ if (!KEY) {
 
 const force = process.argv.includes('--force');
 
-const TARGETS: Target[] = [
-  ...STOPS.map((s) => ({ name: s.name, lat: s.lat, lng: s.lng, query: s.query, km: 2 })),
-  ...Object.values(NIGHTS)
-    .flat()
-    .map((t) => ({ name: t.name, lat: t.lat, lng: t.lng, query: t.query, km: t.r })),
-];
+const TARGETS: Target[] = allPhotoPlaces().map((s) => ({
+  name: s.name,
+  lat: s.lat,
+  lng: s.lng,
+  query: s.query,
+  km: 2,
+}));
 
 const slug = (name: string) =>
   name

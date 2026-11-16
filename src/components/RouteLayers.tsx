@@ -1,7 +1,7 @@
 import type { FeatureCollection, LineString } from 'geojson';
 import { useMemo } from 'react';
 import { Layer, type LayerProps, Source } from 'react-map-gl/mapbox';
-import { DAYS } from '../data/trip';
+import { useTrip } from '../data/TripContext';
 import { useRouteFlow } from '../hooks/useRouteFlow';
 import type { RouteResult } from '../lib/directions';
 import { flowGradient } from '../lib/flowGradient';
@@ -32,6 +32,7 @@ const flowLayer: LayerProps = {
 };
 
 export function RouteLayers({ routes }: { routes: RouteResult[] }) {
+  const { days } = useTrip();
   const animate = useRouteFlow(FLOW_LAYER);
 
   const data = useMemo<FeatureCollection<LineString>>(
@@ -39,11 +40,11 @@ export function RouteLayers({ routes }: { routes: RouteResult[] }) {
       type: 'FeatureCollection',
       features: routes.map((r) => ({
         type: 'Feature',
-        properties: { color: DAYS[r.day].hex },
+        properties: { color: days[r.day].hex },
         geometry: r.geometry,
       })),
     }),
-    [routes],
+    [routes, days],
   );
 
   return (

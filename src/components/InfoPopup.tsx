@@ -2,10 +2,12 @@ import { ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Popup } from 'react-map-gl/mapbox';
 import { describe, pointOf, type Selection } from '../data/derive';
+import { useTrip } from '../data/TripContext';
 
 // closeOnClick is off because TripMap's click handler decides what an empty-map click means.
 export function InfoPopup({ selection }: { selection: Selection }) {
-  const { color, label, title, body, href, photos } = describe(selection);
+  const { days } = useTrip();
+  const { color, label, title, body, href, photos } = describe(selection, days);
   const [lng, lat] = pointOf(selection);
   const isStop = selection.kind === 'stop';
   const photo = photos[0];

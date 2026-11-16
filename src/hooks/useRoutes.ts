@@ -7,6 +7,7 @@ export function useRoutes(segments: Segment[]) {
   const [routes, setRoutes] = useState<RouteResult[] | null>(null);
 
   useEffect(() => {
+    setRoutes(null);
     const controller = new AbortController();
     Promise.all(segments.map((seg) => fetchRoute(seg, controller.signal))).then(setRoutes, () => {});
     return () => controller.abort();

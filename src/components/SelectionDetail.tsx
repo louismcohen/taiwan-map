@@ -6,7 +6,8 @@ import { useSheetStretch } from '@/components/BottomSheet';
 import type { ScrubberFollow } from '@/components/DayScrubber';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { describe, ITINERARY, isSameSelection, type Selection } from '../data/derive';
+import { describe, isSameSelection, type Selection } from '../data/derive';
+import { useTrip } from '../data/TripContext';
 
 interface Props {
   selection: Selection;
@@ -45,13 +46,11 @@ interface Gesture {
   samples: { x: number; t: number }[];
 }
 
-const neighborsOf = (selection: Selection) => {
-  const i = ITINERARY.findIndex((s) => isSameSelection(s, selection));
-  return { prev: ITINERARY[i - 1], next: ITINERARY[i + 1] };
-};
-
 export function SelectionDetail({ selection, onSelect, scrubber }: DetailProps) {
-  const { prev, next } = neighborsOf(selection);
+  const { itinerary } = useTrip();
+  const i = itinerary.findIndex((s) => isSameSelection(s, selection));
+  const prev = itinerary[i - 1];
+  const next = itinerary[i + 1];
   const trackRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const settling = useRef<Animation | null>(null);
@@ -198,7 +197,10 @@ export function SelectionDetail({ selection, onSelect, scrubber }: DetailProps) 
 }
 
 function PagingButtons({ selection, onSelect }: Pick<Props, 'selection' | 'onSelect'>) {
-  const { prev, next } = neighborsOf(selection);
+  const { itinerary } = useTrip();
+  const i = itinerary.findIndex((s) => isSameSelection(s, selection));
+  const prev = itinerary[i - 1];
+  const next = itinerary[i + 1];
   return (
     <>
       <Button
@@ -226,7 +228,8 @@ function PagingButtons({ selection, onSelect }: Pick<Props, 'selection' | 'onSel
 }
 
 function Panel({ selection, onSelect, className, inert }: Props & { className?: string; inert?: boolean }) {
-  const { color, label, title, body, href, photos } = describe(selection);
+  const { days } = useTrip();
+  const { color, label, title, body, href, photos } = describe(selection, days);
 
   return (
     <div className={cn('w-full px-4 pt-1.5 pb-3', className)} inert={inert}>

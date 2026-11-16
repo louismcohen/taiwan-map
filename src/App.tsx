@@ -6,15 +6,8 @@ import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
-import {
-  DAY_BOUNDS,
-  isSameSelection,
-  pointOf,
-  SEGMENTS,
-  type Selection,
-  TRIP_BOUNDS,
-  TRIP_PADDING,
-} from './data/derive';
+import { isSameSelection, pointOf, resolveSelection, type Selection, TRIP_PADDING } from './data/derive';
+import { TripProvider, useTrip } from './data/TripContext';
 import type { DayKey } from './data/trip';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useRoutes } from './hooks/useRoutes';
@@ -25,6 +18,16 @@ const MOBILE_QUERY = '(max-width: 760px)';
 const REVEAL_MARGIN = 24;
 
 export function App() {
+  // Trip is locked to Coast (A). B/C + FridayPlanPicker remain in the codebase for later.
+  return (
+    <TripProvider>
+      <AppShell />
+    </TripProvider>
+  );
+}
+
+function AppShell() {
+  const trip = useTrip();
   const mapRef = useRef<MapRef>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [snap, setSnap] = useState<Snap>('peek');
@@ -36,9 +39,14 @@ export function App() {
   /** The sheet's height around the last stop, to aim the camera before the next one is measured. */
   const lastFit = useRef<number | null>(null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
-  const routes = useRoutes(SEGMENTS);
+  const routes = useRoutes(trip.segments);
   /** On phones, a stop replaces the list below the day scrubber, and the sheet shrinks to fit them. */
   const showingStop = !!selection;
+
+  // Drop a selection that disappeared when the Friday plan changed.
+  useEffect(() => {
+    setSelection((sel) => resolveSelection(sel, trip));
+  }, [trip]);
 
   // A full-height sheet hides the map anyway; aim the camera for when it comes back down.
   const routeInset = (s: Snap) => (isMobile && sheetHeights ? sheetHeights[s === 'full' ? 'half' : s] : 0);
@@ -70,7 +78,7 @@ export function App() {
 
   const reset = () => {
     select(null);
-    fit(TRIP_BOUNDS, routeInset(moveSheet('peek')));
+    fit(trip.tripBounds, routeInset(moveSheet('peek')));
   };
 
   const focus = (sel: Selection) => {
@@ -108,7 +116,7 @@ export function App() {
   // The scrubber scrolls the list to the day itself.
   const showDay = (day: DayKey) => {
     select(null);
-    fit(DAY_BOUNDS[day], routeInset(openSheet()));
+    fit(trip.dayBounds[day], routeInset(openSheet()));
   };
 
   const close = () => select(null);

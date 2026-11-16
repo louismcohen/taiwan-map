@@ -2,8 +2,9 @@ import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { type CSSProperties, type ReactNode, useEffect, useRef } from 'react';
 import { Item, ItemContent, ItemDescription, ItemMedia } from '@/components/ui/item';
 import { cn } from '@/lib/utils';
-import { isPrimary, type Selection, STOPS } from '../data/derive';
-import { DAYS, type DayKey, NIGHT_NAMES, NIGHTS } from '../data/trip';
+import { isPrimary, isSameSelection, type Selection } from '../data/derive';
+import { useTrip } from '../data/TripContext';
+import { type DayKey, NIGHT_NAMES } from '../data/trip';
 import { stopIcon } from '../lib/stopIcon';
 
 interface Props {
@@ -15,8 +16,9 @@ interface Props {
 const overline = 'text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase';
 
 export function DaySection({ day, selection, onSelect }: Props) {
-  const { name, color, hex, note } = DAYS[day];
-  const towns = NIGHTS[day];
+  const { days, stops, nights } = useTrip();
+  const { name, color, hex, note } = days[day];
+  const towns = nights[day];
 
   return (
     <section
@@ -28,28 +30,30 @@ export function DaySection({ day, selection, onSelect }: Props) {
       <div aria-hidden className="mb-2.5 h-[3px] w-5 rounded-full" style={{ background: color }} />
       {note && <p className="mb-2 text-xs leading-[1.45] text-muted-foreground">{note}</p>}
 
-      {STOPS.filter((s) => s.day === day).map((stop) => (
-        <Row
-          key={stop.n}
-          active={selection?.kind === 'stop' && selection.stop === stop}
-          onClick={() => onSelect({ kind: 'stop', stop })}
-          icon={
-            <div
-              className={cn(
-                'grid size-[26px] place-items-center rounded-full bg-(--c) text-xs font-bold text-white',
-                stop.suggested && 'bg-white text-(--c) shadow-[inset_0_0_0_2px_var(--c)]',
-              )}
-              style={cssVar(color)}
-            >
-              {stop.n}
-            </div>
-          }
-          label={stop.label}
-          labelIcon={stopIcon(stop)}
-          title={stop.name}
-          body={stop.desc}
-        />
-      ))}
+      {stops
+        .filter((s) => s.day === day)
+        .map((stop) => (
+          <Row
+            key={stop.n}
+            active={selection?.kind === 'stop' && isSameSelection(selection, { kind: 'stop', stop })}
+            onClick={() => onSelect({ kind: 'stop', stop })}
+            icon={
+              <div
+                className={cn(
+                  'grid size-[26px] place-items-center rounded-full bg-(--c) text-xs font-bold text-white',
+                  stop.suggested && 'bg-white text-(--c) shadow-[inset_0_0_0_2px_var(--c)]',
+                )}
+                style={cssVar(color)}
+              >
+                {stop.n}
+              </div>
+            }
+            label={stop.label}
+            labelIcon={stopIcon(stop)}
+            title={stop.name}
+            body={stop.desc}
+          />
+        ))}
 
       <div className="mt-2 mb-1 border-t border-dashed pt-2.5">
         {towns.length ? (
@@ -58,7 +62,7 @@ export function DaySection({ day, selection, onSelect }: Props) {
             {towns.map((town) => (
               <Row
                 key={town.name}
-                active={selection?.kind === 'town' && selection.town === town}
+                active={selection?.kind === 'town' && isSameSelection(selection, { kind: 'town', town, day })}
                 onClick={() => onSelect({ kind: 'town', town, day })}
                 icon={
                   <div

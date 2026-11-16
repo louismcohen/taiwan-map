@@ -8,78 +8,75 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  DAY_KEYS,
-  ITINERARY,
-  isPrimary,
-  isSameSelection,
-  type NumberedStop,
-  type Selection,
-  STOPS,
-} from '../data/derive';
-import { DAYS, type DayKey, NIGHTS } from '../data/trip';
+import { DAY_KEYS, isPrimary, isSameSelection, type NumberedStop, type Selection } from '../data/derive';
+import { useTrip } from '../data/TripContext';
+import type { DayKey } from '../data/trip';
 import { useDayScroll } from '../hooks/useDayScroll';
 import type { RouteResult } from '../lib/directions';
 import { routeStats } from '../lib/format';
 
-const DAY_STOPS = Object.fromEntries(DAY_KEYS.map((day) => [day, STOPS.filter((s) => s.day === day)])) as Record<
-  DayKey,
-  NumberedStop[]
->;
-
-const STOP_COUNTS = Object.fromEntries(DAY_KEYS.map((day) => [day, DAY_STOPS[day].length])) as Record<DayKey, number>;
-
-const ROW_COUNTS = Object.fromEntries(DAY_KEYS.map((day) => [day, STOP_COUNTS[day] + NIGHTS[day].length])) as Record<
-  DayKey,
-  number
->;
-const TOTAL_ROWS = DAY_KEYS.reduce((sum, day) => sum + ROW_COUNTS[day], 0);
 const LAST_DAY = DAY_KEYS[DAY_KEYS.length - 1];
 /** Space between day segments in px. Must match the bar's `gap-[3px]`. */
 const GAP = 3;
+
+type Layout = {
+  dayStops: Record<DayKey, NumberedStop[]>;
+  stopCounts: Record<DayKey, number>;
+  rowCounts: Record<DayKey, number>;
+  rowsBefore: Record<DayKey, number>;
+  totalRows: number;
+};
+
+function layoutOf(stops: NumberedStop[], nights: Record<DayKey, unknown[]>): Layout {
+  const dayStops = Object.fromEntries(DAY_KEYS.map((day) => [day, stops.filter((s) => s.day === day)])) as Record<
+    DayKey,
+    NumberedStop[]
+  >;
+  const stopCounts = Object.fromEntries(DAY_KEYS.map((day) => [day, dayStops[day].length])) as Record<DayKey, number>;
+  const rowCounts = Object.fromEntries(DAY_KEYS.map((day) => [day, stopCounts[day] + nights[day].length])) as Record<
+    DayKey,
+    number
+  >;
+  const rowsBefore = Object.fromEntries(
+    DAY_KEYS.map((day, i) => [day, DAY_KEYS.slice(0, i).reduce((sum, d) => sum + rowCounts[d], 0)]),
+  ) as Record<DayKey, number>;
+  const totalRows = DAY_KEYS.reduce((sum, day) => sum + rowCounts[day], 0);
+  return { dayStops, stopCounts, rowCounts, rowsBefore, totalRows };
+}
 
 /**
  * Within its segment, a day gives every stop an equal slot, its dot in the middle; its places to stay
  * share the half-slot after its last dot. Maps a position through the day's rows (0–1) onto its segment.
  */
-function toBar(day: DayKey, rowProgress: number) {
-  const stops = STOP_COUNTS[day];
+function toBar(layout: Layout, day: DayKey, rowProgress: number) {
+  const stops = layout.stopCounts[day];
   const lastDot = stops - 0.5;
-  const row = rowProgress * ROW_COUNTS[day];
-  const slot = row <= lastDot ? row : lastDot + ((row - lastDot) * 0.5) / (ROW_COUNTS[day] - lastDot);
+  const row = rowProgress * layout.rowCounts[day];
+  const slot = row <= lastDot ? row : lastDot + ((row - lastDot) * 0.5) / (layout.rowCounts[day] - lastDot);
   return slot / stops;
 }
 
-function fromBar(day: DayKey, barProgress: number) {
-  const lastDot = STOP_COUNTS[day] - 0.5;
-  const slot = barProgress * STOP_COUNTS[day];
-  const row = slot <= lastDot ? slot : lastDot + ((slot - lastDot) * (ROW_COUNTS[day] - lastDot)) / 0.5;
-  return row / ROW_COUNTS[day];
+function fromBar(layout: Layout, day: DayKey, barProgress: number) {
+  const lastDot = layout.stopCounts[day] - 0.5;
+  const slot = barProgress * layout.stopCounts[day];
+  const row = slot <= lastDot ? slot : lastDot + ((slot - lastDot) * (layout.rowCounts[day] - lastDot)) / 0.5;
+  return row / layout.rowCounts[day];
 }
 
-/**
- * Trailing gap that a day's segment runs on through: all but the last day's. The bar is then one
- * continuous scale, in rows, that the thumb can cross days on.
- */
 const trailOf = (day: DayKey) => (day === LAST_DAY ? 0 : GAP);
 
-/** Segments are sized by each day's share of list rows, so dragging moves through the list evenly. */
-const flexOf = (day: DayKey) => `0 0 calc(${(ROW_COUNTS[day] / TOTAL_ROWS) * 100}% - ${trailOf(day)}px)`;
+const flexOf = (layout: Layout, day: DayKey) =>
+  `0 0 calc(${(layout.rowCounts[day] / layout.totalRows) * 100}% - ${trailOf(day)}px)`;
 
-/** A CSS length `barProgress` of the way through a segment, trailing gap included. */
 const along = (day: DayKey, barProgress: number | string) => `calc(${barProgress} * (100% + ${trailOf(day)}px))`;
 
-/** Rows on the bar before each day's segment. */
-const ROWS_BEFORE = Object.fromEntries(
-  DAY_KEYS.map((day, i) => [day, DAY_KEYS.slice(0, i).reduce((sum, d) => sum + ROW_COUNTS[d], 0)]),
-) as Record<DayKey, number>;
-
-/** Where a position through `day`'s rows falls on the bar, in rows from its start. */
-const barAt = (day: DayKey, rowProgress: number) => ROWS_BEFORE[day] + toBar(day, rowProgress) * ROW_COUNTS[day];
+const barAt = (layout: Layout, day: DayKey, rowProgress: number) =>
+  layout.rowsBefore[day] + toBar(layout, day, rowProgress) * layout.rowCounts[day];
 
 /**
  * The thumb's position in rows along the bar, in CSS: `--at` is where React last put it, and `--swipe`
@@ -89,10 +86,8 @@ const POS = '(var(--at) + var(--swipe))';
 const GLIDE_MS = 300;
 const GLIDE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
-/** The thumb's offset from `--at` as now on screen, mid-glide included. */
 const offsetOf = (bar: HTMLElement) => Number.parseFloat(getComputedStyle(bar).getPropertyValue('--swipe')) || 0;
 
-/** Eases the thumb from `from` slots off `--at` to rest there. */
 function glide(bar: HTMLElement, from: number, duration: number, easing: string) {
   for (const animation of bar.getAnimations()) animation.cancel();
   bar.style.removeProperty('--swipe');
@@ -108,23 +103,7 @@ export interface ScrubberFollow {
   settle: (duration: number, easing: string) => void;
 }
 
-const overnight = (day: DayKey) => {
-  const towns = NIGHTS[day];
-  return towns.find(isPrimary) ?? towns[0];
-};
-
 const dayOf = (sel: Selection) => (sel.kind === 'stop' ? sel.stop.day : sel.day);
-
-/** Where `sel` sits among its day's rows, as the middle of its row. */
-function positionOf(sel: Selection) {
-  const day = dayOf(sel);
-  const rows = ITINERARY.filter((s) => dayOf(s) === day);
-  const index = Math.max(
-    0,
-    rows.findIndex((s) => isSameSelection(s, sel)),
-  );
-  return { day, progress: (index + 0.5) / rows.length, index, count: rows.length };
-}
 
 interface Props {
   /** The scrolling element that holds the day sections. */
@@ -138,13 +117,26 @@ interface Props {
   followRef?: Ref<ScrubberFollow>;
 }
 
-const barOf = (sel: Selection) => {
-  const { day, progress } = positionOf(sel);
-  return barAt(day, progress);
-};
-
 /** The current day, a bar to scrub through the whole trip, and the day's stop count and overnight. */
 export function DayScrubber({ list, routes, sticky = false, onPick, current, followRef }: Props) {
+  const trip = useTrip();
+  const layout = useMemo(() => layoutOf(trip.stops, trip.nights), [trip.stops, trip.nights]);
+
+  const positionOf = (sel: Selection) => {
+    const day = dayOf(sel);
+    const rows = trip.itinerary.filter((s) => dayOf(s) === day);
+    const index = Math.max(
+      0,
+      rows.findIndex((s) => isSameSelection(s, sel)),
+    );
+    return { day, progress: (index + 0.5) / rows.length, index, count: rows.length };
+  };
+
+  const barOf = (sel: Selection) => {
+    const { day, progress } = positionOf(sel);
+    return barAt(layout, day, progress);
+  };
+
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const segments = useRef<Partial<Record<DayKey, HTMLDivElement | null>>>({});
@@ -166,12 +158,12 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
   }, [sticky, root, list]);
 
   const index = DAY_KEYS.indexOf(day);
-  const { name, color } = DAYS[day];
-  const stops = STOP_COUNTS[day];
-  const town = overnight(day);
-  const at = barAt(day, progress);
-  const row = shown ? shown.index : Math.min(ROW_COUNTS[day] - 1, Math.floor(progress * ROW_COUNTS[day]));
-  const onStop: NumberedStop | undefined = DAY_STOPS[day][row];
+  const { name, color } = trip.days[day];
+  const stopCount = layout.stopCounts[day];
+  const town = trip.nights[day].find(isPrimary) ?? trip.nights[day][0];
+  const at = barAt(layout, day, progress);
+  const row = shown ? shown.index : Math.min(layout.rowCounts[day] - 1, Math.floor(progress * layout.rowCounts[day]));
+  const onStop: NumberedStop | undefined = layout.dayStops[day][row];
   const showingStop = !!current;
 
   // Moving between waypoints glides the thumb over from wherever it was; scrolling moves it directly.
@@ -188,8 +180,8 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
     follow: (progress) => {
       const bar = barRef.current;
       if (!bar || !current) return;
-      const i = ITINERARY.findIndex((s) => isSameSelection(s, current.selection));
-      const neighbor = ITINERARY[progress < 0 ? i - 1 : i + 1];
+      const i = trip.itinerary.findIndex((s) => isSameSelection(s, current.selection));
+      const neighbor = trip.itinerary[progress < 0 ? i - 1 : i + 1];
       for (const animation of bar.getAnimations()) animation.cancel();
       bar.style.setProperty('--swipe', String(neighbor ? Math.abs(progress) * (barOf(neighbor) - at) : 0));
     },
@@ -216,7 +208,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
     }
     if (!rect) return;
     const barProgress = (e.clientX - rect.left) / (rect.width + trailOf(target));
-    scrubTo(target, fromBar(target, Math.min(1, Math.max(0, barProgress))));
+    scrubTo(target, fromBar(layout, target, Math.min(1, Math.max(0, barProgress))));
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -258,7 +250,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
         aria-label="Position in trip"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round((at / TOTAL_ROWS) * 100)}
+        aria-valuenow={Math.round((at / layout.totalRows) * 100)}
         aria-valuetext={`${name}, ${Math.round(progress * 100)}% through the day`}
         data-base-ui-swipe-ignore="x"
         ref={barRef}
@@ -280,19 +272,19 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
               segments.current[d] = el;
             }}
             className="relative h-1.5 rounded-full bg-[color-mix(in_srgb,var(--c)_22%,transparent)]"
-            style={{ '--c': DAYS[d].hex, flex: flexOf(d) } as CSSProperties}
+            style={{ '--c': trip.days[d].hex, flex: flexOf(layout, d) } as CSSProperties}
           >
             <div className="absolute inset-0 overflow-hidden rounded-full">
               <div
                 className="h-full bg-(--c)"
                 style={{
                   // Capped at 0: past the segment's end, in its trailing gap, it stays full rather than sliding off the left.
-                  transform: `translateX(min(0px, ${along(d, `clamp(0, (${POS} - ${ROWS_BEFORE[d]}) / ${ROW_COUNTS[d]}, 1)`)} - 100%))`,
+                  transform: `translateX(min(0px, ${along(d, `clamp(0, (${POS} - ${layout.rowsBefore[d]}) / ${layout.rowCounts[d]}, 1)`)} - 100%))`,
                 }}
               />
             </div>
-            {DAY_STOPS[d].map((stop, j) => {
-              const dot = ROWS_BEFORE[d] + ((j + 0.5) / STOP_COUNTS[d]) * ROW_COUNTS[d];
+            {layout.dayStops[d].map((stop, j) => {
+              const dot = layout.rowsBefore[d] + ((j + 0.5) / layout.stopCounts[d]) * layout.rowCounts[d];
               // Fully white once the thumb reaches the dot, and the day's tint before.
               const passed = `clamp(0, (${POS} - ${dot}) * 1000 + 1, 1)`;
               return (
@@ -300,7 +292,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
                   key={stop.n}
                   className="pointer-events-none absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full"
                   style={{
-                    left: along(d, (j + 0.5) / STOP_COUNTS[d]),
+                    left: along(d, (j + 0.5) / layout.stopCounts[d]),
                     background: `color-mix(in srgb, rgb(255 255 255 / 0.7) calc(${passed} * 100%), color-mix(in srgb, var(--c) 45%, transparent))`,
                   }}
                 />
@@ -315,7 +307,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
             onStop && 'size-5',
             onStop && !onStop.suggested && 'bg-(--c) text-white',
           )}
-          style={{ '--c': DAYS[day].hex, left: `calc(${POS} / ${TOTAL_ROWS} * 100%)` } as CSSProperties}
+          style={{ '--c': trip.days[day].hex, left: `calc(${POS} / ${layout.totalRows} * 100%)` } as CSSProperties}
         >
           {onStop?.n}
         </div>
@@ -330,12 +322,12 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
               '-my-1 min-w-0 rounded-sm py-1 text-left text-[11px] font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring',
               d === day && 'text-(--c)',
             )}
-            style={{ '--c': DAYS[d].hex, flex: flexOf(d) } as CSSProperties}
-            aria-label={DAYS[d].name}
+            style={{ '--c': trip.days[d].hex, flex: flexOf(layout, d) } as CSSProperties}
+            aria-label={trip.days[d].name}
             aria-current={d === day || undefined}
             onClick={() => pick(d)}
           >
-            {DAYS[d].name.slice(0, 3)}
+            {trip.days[d].name.slice(0, 3)}
           </button>
         ))}
       </div>
@@ -356,7 +348,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
         <div className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 border-t border-dashed pt-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <HugeiconsIcon icon={Location01Icon} size={13} strokeWidth={2} className="shrink-0" />
-            {stops} {stops === 1 ? 'stop' : 'stops'}
+            {stopCount} {stopCount === 1 ? 'stop' : 'stops'}
           </span>
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <HugeiconsIcon icon={town ? BedIcon : Train01Icon} size={13} strokeWidth={2} className="shrink-0" />

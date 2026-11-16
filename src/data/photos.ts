@@ -41,10 +41,20 @@ export const PHOTOS: Record<string, string[]> = {
     "photos/antong-hot-spring-hotel-2.jpg",
     "photos/antong-hot-spring-hotel-3.jpg"
   ],
+  "Nanan Falls (南安瀑布)": [
+    "photos/nanan-falls-1.jpg",
+    "photos/nanan-falls-2.jpg",
+    "photos/nanan-falls-3.jpg"
+  ],
   "Sanxiantai (Eight-Arch Bridge)": [
     "photos/sanxiantai-eight-arch-bridge-1.jpg",
     "photos/sanxiantai-eight-arch-bridge-2.jpg",
     "photos/sanxiantai-eight-arch-bridge-3.jpg"
+  ],
+  "King Kong Avenue Scenic Road (金剛大道)": [
+    "photos/king-kong-avenue-scenic-road-1.jpg",
+    "photos/king-kong-avenue-scenic-road-2.jpg",
+    "photos/king-kong-avenue-scenic-road-3.jpg"
   ],
   "Baxian Cave (八仙洞)": [
     "photos/baxian-cave-1.jpg",
@@ -108,9 +118,19 @@ export const PHOTOS: Record<string, string[]> = {
     "photos/guangfu-mataian-2.jpg",
     "photos/guangfu-mataian-3.jpg"
   ],
+  "Ruisui": [
+    "photos/ruisui-1.jpg",
+    "photos/ruisui-2.jpg",
+    "photos/ruisui-3.jpg"
+  ],
   "Fenglin": [
     "photos/fenglin-1.jpg",
     "photos/fenglin-2.jpg",
     "photos/fenglin-3.jpg"
+  ],
+  "Tropic of Cancer Marker Park (Ruisui)": [
+    "photos/tropic-of-cancer-marker-park-ruisui-1.jpg",
+    "photos/tropic-of-cancer-marker-park-ruisui-2.jpg",
+    "photos/tropic-of-cancer-marker-park-ruisui-3.jpg"
   ]
 };

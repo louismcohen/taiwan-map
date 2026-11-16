@@ -2,7 +2,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PaddingOptions } from 'mapbox-gl';
 import { type CSSProperties, type Ref, useState } from 'react';
 import MapGL, { type MapMouseEvent, type MapRef, NavigationControl, ScaleControl } from 'react-map-gl/mapbox';
-import { isSameSelection, type Selection, TOWNS, TRIP_BOUNDS } from '../data/derive';
+import { isSameSelection, type Selection } from '../data/derive';
+import { useTrip } from '../data/TripContext';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';
@@ -27,6 +28,7 @@ interface Props {
 const INTERACTIVE_LAYERS = [STAY_FILL_LAYER];
 
 export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, initialPadding, bottomInset }: Props) {
+  const { towns, tripBounds } = useTrip();
   const [cursor, setCursor] = useState('');
 
   const handleClick = (e: MapMouseEvent) => {
@@ -35,7 +37,7 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
       onSelect(null);
       return;
     }
-    const { town, day } = TOWNS[i];
+    const { town, day } = towns[i];
     onSelect({ kind: 'town', town, day, at: [e.lngLat.lng, e.lngLat.lat] });
   };
 
@@ -45,7 +47,7 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
-        initialViewState={{ bounds: TRIP_BOUNDS, fitBoundsOptions: { padding: initialPadding } }}
+        initialViewState={{ bounds: tripBounds, fitBoundsOptions: { padding: initialPadding } }}
         interactiveLayerIds={INTERACTIVE_LAYERS}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
