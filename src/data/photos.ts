@@ -46,11 +46,6 @@ export const PHOTOS: Record<string, string[]> = {
     "photos/nanan-falls-2.jpg",
     "photos/nanan-falls-3.jpg"
   ],
-  "Sanxiantai (Eight-Arch Bridge)": [
-    "photos/sanxiantai-eight-arch-bridge-1.jpg",
-    "photos/sanxiantai-eight-arch-bridge-2.jpg",
-    "photos/sanxiantai-eight-arch-bridge-3.jpg"
-  ],
   "King Kong Avenue Scenic Road (金剛大道)": [
     "photos/king-kong-avenue-scenic-road-1.jpg",
     "photos/king-kong-avenue-scenic-road-2.jpg",

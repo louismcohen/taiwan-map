@@ -190,17 +190,6 @@ const nananFalls: Stop = {
   desc: 'Fifty-metre waterfall on Hwy 30 west of Yuli, about 10 km from town. Short boardwalk to the viewing platform before you cross the mountains to the coast.',
 };
 
-const sanxiantai: Stop = {
-  day: 'fri',
-  suggested: true,
-  lat: 23.1225,
-  lng: 121.4120,
-  name: 'Sanxiantai (Eight-Arch Bridge)',
-  query: '三仙台',
-  label: 'Suggested · Short backtrack',
-  desc: 'Offshore volcanic islet linked by a wave-shaped eight-arch footbridge — one of the signature sights of the east coast. Adds about 30 km south from where Hwy 30 meets the coast.',
-};
-
 const kingKong: Stop = {
   day: 'fri',
   suggested: true,
@@ -209,7 +198,7 @@ const kingKong: Stop = {
   name: 'King Kong Avenue Scenic Road (金剛大道)',
   query: '金剛大道',
   label: 'Suggested · On the way',
-  desc: 'Straight coastal stretch of Hwy 11 through Changbin with big Pacific views. A natural photo stop between Sanxiantai and Baxian Cave.',
+  desc: 'Straight coastal stretch of Hwy 11 through Changbin with big Pacific views. A natural photo stop just north of where Hwy 30 meets the coast, on the way to Baxian Cave.',
 };
 
 const baxian: Stop = {
@@ -324,7 +313,7 @@ const hualienStation: Stop = {
   desc: 'Return your 155cc+ scooter directly outside the station before boarding your evening express train back to Taipei.',
 };
 
-const coastOnRoute: Stop[] = [sanxiantai, kingKong, baxian, changhong, shiTiPing];
+const coastOnRoute: Stop[] = [kingKong, baxian, changhong, shiTiPing];
 
 const coastOffRoute: Stop[] = coastOnRoute.map((s) => ({
   ...s,
@@ -357,7 +346,7 @@ function satTail(variant: PlanVariant): Stop[] {
 export function stopsFor(variant: PlanVariant): Stop[] {
   const head = [wedStay, ...thuStops, nananFalls];
   if (variant === 'A') return [...head, ...coastOnRoute, sugarFactory, ...satTail('A')];
-  if (variant === 'B') return [...head, sanxiantai, kingKong, baxian, changhong, ruisuiTropic, ...satTail('B')];
+  if (variant === 'B') return [...head, kingKong, baxian, changhong, ruisuiTropic, ...satTail('B')];
   return [...head, ruisuiTropic, ruisuiStop, sugarFactory, ...coastOffRoute, ...satTail('C')];
 }
 
