@@ -23,6 +23,14 @@ const lineLayer: LayerProps = {
   paint: { 'line-color': ['get', 'color'], 'line-width': 4.5 },
 };
 
+// Under saved places the route is only context, so it stays out of their way.
+const faintLayer: LayerProps = {
+  id: 'route-faint',
+  type: 'line',
+  layout: lineLayout,
+  paint: { 'line-color': '#6f6a61', 'line-width': 2.5, 'line-opacity': 0.5, 'line-dasharray': [1.5, 2] },
+};
+
 // Gradient is animated imperatively by useRouteFlow; this is only the initial frame.
 const flowLayer: LayerProps = {
   id: FLOW_LAYER,
@@ -31,9 +39,9 @@ const flowLayer: LayerProps = {
   paint: { 'line-width': 2.5, 'line-gradient': flowGradient(0) },
 };
 
-export function RouteLayers({ routes }: { routes: RouteResult[] }) {
+export function RouteLayers({ routes, faint = false }: { routes: RouteResult[]; faint?: boolean }) {
   const { days } = useTrip();
-  const animate = useRouteFlow(FLOW_LAYER);
+  const animate = useRouteFlow(FLOW_LAYER) && !faint;
 
   const data = useMemo<FeatureCollection<LineString>>(
     () => ({
@@ -49,8 +57,14 @@ export function RouteLayers({ routes }: { routes: RouteResult[] }) {
 
   return (
     <Source id="route" type="geojson" lineMetrics data={data}>
-      <Layer {...casingLayer} />
-      <Layer {...lineLayer} />
+      {faint ? (
+        <Layer {...faintLayer} />
+      ) : (
+        <>
+          <Layer {...casingLayer} />
+          <Layer {...lineLayer} />
+        </>
+      )}
       {animate && <Layer {...flowLayer} />}
     </Source>
   );

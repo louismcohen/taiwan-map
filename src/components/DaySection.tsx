@@ -13,7 +13,7 @@ interface Props {
   onSelect: (selection: Selection) => void;
 }
 
-const overline = 'text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase';
+export const overline = 'text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase';
 
 export function DaySection({ day, selection, onSelect }: Props) {
   const { days, stops, nights } = useTrip();
@@ -98,10 +98,12 @@ interface RowProps {
   label: string;
   labelIcon?: IconSvgElement;
   title: string;
-  body: string;
+  body?: string;
+  /** Cut the body to two lines, for long notes the detail shows in full. */
+  clamp?: boolean;
 }
 
-function Row({ active, onClick, icon, label, labelIcon, title, body }: RowProps) {
+export function Row({ active, onClick, icon, label, labelIcon, title, body, clamp }: RowProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -133,7 +135,11 @@ function Row({ active, onClick, icon, label, labelIcon, title, body }: RowProps)
             {title}
           </button>
         </h3>
-        <ItemDescription className="line-clamp-none text-[12.5px] leading-[1.45]">{body}</ItemDescription>
+        {body && (
+          <ItemDescription className={cn('text-[12.5px] leading-[1.45]', clamp ? 'line-clamp-2' : 'line-clamp-none')}>
+            {body}
+          </ItemDescription>
+        )}
       </ItemContent>
     </Item>
   );

@@ -1,18 +1,26 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PaddingOptions } from 'mapbox-gl';
-import { type CSSProperties, type Ref, useState } from 'react';
+import { type CSSProperties, type ReactNode, type Ref, useState } from 'react';
 import MapGL, { type MapMouseEvent, type MapRef, NavigationControl, ScaleControl } from 'react-map-gl/mapbox';
 import { isSameSelection, type Selection } from '../data/derive';
+import type { SavedPlace } from '../data/saved';
 import { useTrip } from '../data/TripContext';
 import { MAPBOX_TOKEN } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';
+import type { MapMode } from './ModeMenu';
+import { CLUSTER_LAYER, expandCluster, PlaceMarkers } from './PlaceMarkers';
 import { RouteLayers } from './RouteLayers';
 import { STAY_FILL_LAYER, StayZones } from './StayZones';
 import { StopMarkers } from './StopMarkers';
 
 interface Props {
   mapRef: Ref<MapRef>;
+  mode: MapMode;
+  /** Saved places to show in saved mode, already filtered. */
+  places: SavedPlace[];
+  /** Overlay in the top-left corner, e.g. the mode menu. */
+  children?: ReactNode;
   selection: Selection | null;
   onSelect: (selection: Selection | null) => void;
   onReset: () => void;
@@ -25,14 +33,31 @@ interface Props {
   bottomInset: number;
 }
 
-const INTERACTIVE_LAYERS = [STAY_FILL_LAYER];
+const INTERACTIVE_LAYERS: Record<MapMode, string[]> = { route: [STAY_FILL_LAYER], saved: [CLUSTER_LAYER] };
 
-export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, initialPadding, bottomInset }: Props) {
+export function TripMap({
+  mapRef,
+  mode,
+  places,
+  children,
+  selection,
+  onSelect,
+  onReset,
+  routes,
+  popups,
+  initialPadding,
+  bottomInset,
+}: Props) {
   const { towns, tripBounds } = useTrip();
   const [cursor, setCursor] = useState('');
 
   const handleClick = (e: MapMouseEvent) => {
-    const i: number | undefined = e.features?.[0]?.properties?.i;
+    const feature = e.features?.[0];
+    if (feature?.layer?.id === CLUSTER_LAYER && feature.geometry.type === 'Point') {
+      expandCluster(e.target, feature.properties?.cluster_id, feature.geometry.coordinates as [number, number]);
+      return;
+    }
+    const i: number | undefined = feature?.properties?.i;
     if (i == null) {
       onSelect(null);
       return;
@@ -42,13 +67,13 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
   };
 
   return (
-    <div id="map" className="h-full flex-1" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
+    <div id="map" className="relative h-full flex-1" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
       <MapGL
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
         initialViewState={{ bounds: tripBounds, fitBoundsOptions: { padding: initialPadding } }}
-        interactiveLayerIds={INTERACTIVE_LAYERS}
+        interactiveLayerIds={INTERACTIVE_LAYERS[mode]}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
         onMouseLeave={() => setCursor('')}
@@ -56,16 +81,27 @@ export function TripMap({ mapRef, selection, onSelect, onReset, routes, popups, 
       >
         <NavigationControl position="top-right" />
         <ScaleControl unit="metric" position="bottom-right" />
-        <StayZones />
-        {routes && <RouteLayers routes={routes} />}
-        <StopMarkers
-          selected={selection?.kind === 'stop' ? selection.stop : null}
-          onClick={(stop) =>
-            isSameSelection(selection, { kind: 'stop', stop }) ? onReset() : onSelect({ kind: 'stop', stop })
-          }
-        />
+        {mode === 'route' && <StayZones />}
+        {routes && <RouteLayers routes={routes} faint={mode === 'saved'} />}
+        {mode === 'route' ? (
+          <StopMarkers
+            selected={selection?.kind === 'stop' ? selection.stop : null}
+            onClick={(stop) =>
+              isSameSelection(selection, { kind: 'stop', stop }) ? onReset() : onSelect({ kind: 'stop', stop })
+            }
+          />
+        ) : (
+          <PlaceMarkers
+            places={places}
+            selected={selection?.kind === 'place' ? selection.place : null}
+            onClick={(place) =>
+              isSameSelection(selection, { kind: 'place', place }) ? onReset() : onSelect({ kind: 'place', place })
+            }
+          />
+        )}
         {popups && selection && <InfoPopup selection={selection} />}
       </MapGL>
+      {children}
     </div>
   );
 }

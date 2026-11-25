@@ -1,4 +1,4 @@
-import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, Route01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { type MouseEvent, type PointerEvent, type RefObject, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -7,10 +7,14 @@ import type { ScrubberFollow } from '@/components/DayScrubber';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { describe, isSameSelection, type Selection } from '../data/derive';
+import { nearestStop } from '../data/saved';
 import { useTrip } from '../data/TripContext';
+import { fmtDistance } from '../lib/format';
 
 interface Props {
   selection: Selection;
+  /** What Previous and Next, and swipes, page through. */
+  sequence: Selection[];
   onSelect: (selection: Selection) => void;
 }
 
@@ -34,6 +38,8 @@ const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const EASE_SLOPE = 0.72 / 0.32;
 const MIN_SETTLE_MS = 200;
 const MAX_SETTLE_MS = 450;
+/** Saved places closer than this to a stop say so. */
+const NEAR_ROUTE_KM = 5;
 
 interface Gesture {
   pointerId: number;
@@ -46,11 +52,10 @@ interface Gesture {
   samples: { x: number; t: number }[];
 }
 
-export function SelectionDetail({ selection, onSelect, scrubber }: DetailProps) {
-  const { itinerary } = useTrip();
-  const i = itinerary.findIndex((s) => isSameSelection(s, selection));
-  const prev = itinerary[i - 1];
-  const next = itinerary[i + 1];
+export function SelectionDetail({ selection, sequence, onSelect, scrubber }: DetailProps) {
+  const i = sequence.findIndex((s) => isSameSelection(s, selection));
+  const prev = sequence[i - 1];
+  const next = sequence[i + 1];
   const trackRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const settling = useRef<Animation | null>(null);
@@ -188,26 +193,30 @@ export function SelectionDetail({ selection, onSelect, scrubber }: DetailProps) 
       onDragStart={(e) => e.preventDefault()}
     >
       <div ref={trackRef} className="relative">
-        {prev && <Panel selection={prev} onSelect={onSelect} className="absolute top-0 right-full" inert />}
-        <Panel selection={selection} onSelect={onSelect} />
-        {next && <Panel selection={next} onSelect={onSelect} className="absolute top-0 left-full" inert />}
+        {prev && (
+          <Panel selection={prev} sequence={sequence} onSelect={onSelect} className="absolute top-0 right-full" inert />
+        )}
+        <Panel selection={selection} sequence={sequence} onSelect={onSelect} />
+        {next && (
+          <Panel selection={next} sequence={sequence} onSelect={onSelect} className="absolute top-0 left-full" inert />
+        )}
       </div>
     </div>
   );
 }
 
-function PagingButtons({ selection, onSelect }: Pick<Props, 'selection' | 'onSelect'>) {
-  const { itinerary } = useTrip();
-  const i = itinerary.findIndex((s) => isSameSelection(s, selection));
-  const prev = itinerary[i - 1];
-  const next = itinerary[i + 1];
+function PagingButtons({ selection, sequence, onSelect }: Props) {
+  const i = sequence.findIndex((s) => isSameSelection(s, selection));
+  const prev = sequence[i - 1];
+  const next = sequence[i + 1];
+  const noun = selection.kind === 'place' ? 'place' : 'stop';
   return (
     <>
       <Button
         variant="secondary"
         size="icon-xs"
         className="rounded-full text-muted-foreground"
-        aria-label="Previous stop"
+        aria-label={`Previous ${noun}`}
         disabled={!prev}
         onClick={() => prev && onSelect(prev)}
       >
@@ -217,7 +226,7 @@ function PagingButtons({ selection, onSelect }: Pick<Props, 'selection' | 'onSel
         variant="secondary"
         size="icon-xs"
         className="rounded-full text-muted-foreground"
-        aria-label="Next stop"
+        aria-label={`Next ${noun}`}
         disabled={!next}
         onClick={() => next && onSelect(next)}
       >
@@ -227,9 +236,10 @@ function PagingButtons({ selection, onSelect }: Pick<Props, 'selection' | 'onSel
   );
 }
 
-function Panel({ selection, onSelect, className, inert }: Props & { className?: string; inert?: boolean }) {
-  const { days } = useTrip();
-  const { color, label, title, body, href, photos } = describe(selection, days);
+function Panel({ selection, sequence, onSelect, className, inert }: Props & { className?: string; inert?: boolean }) {
+  const { days, stops } = useTrip();
+  const { color, label, title, subtitle, body, href, photos } = describe(selection, days);
+  const near = selection.kind === 'place' ? nearestStop(selection.place, stops) : null;
 
   return (
     <div className={cn('w-full px-4 pt-1.5 pb-3', className)} inert={inert}>
@@ -238,11 +248,21 @@ function Panel({ selection, onSelect, className, inert }: Props & { className?: 
           <div className="flex-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>
             {label}
           </div>
-          <PagingButtons selection={selection} onSelect={onSelect} />
+          <PagingButtons selection={selection} sequence={sequence} onSelect={onSelect} />
         </div>
         <h3 className="mt-0.5 text-[17px] leading-[1.3] font-bold">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
-      <p className="mb-3 text-[13px] leading-[1.45] text-muted-foreground">{body}</p>
+      {body && <p className="mb-3 text-[13px] leading-[1.45] whitespace-pre-line text-muted-foreground">{body}</p>}
+      {near && near.km < NEAR_ROUTE_KM && (
+        <p className="mb-3 flex items-start gap-1.5 text-xs leading-[1.45] text-muted-foreground">
+          <HugeiconsIcon icon={Route01Icon} size={14} strokeWidth={2} className="mt-px shrink-0" />
+          <span>
+            {fmtDistance(near.km)} from stop {near.stop.n},{' '}
+            <span className="font-semibold text-foreground">{near.stop.name}</span> ({days[near.stop.day].name})
+          </span>
+        </p>
+      )}
       {photos.length > 0 && (
         <div
           data-photos
