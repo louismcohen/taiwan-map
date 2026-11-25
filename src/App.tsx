@@ -3,11 +3,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
 import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
-import { FitMapButton, type MapMode, ModeMenu } from './components/ModeMenu';
+import { FitMapButton, LOCATE_ZOOM, LocateMapButton, MapFabStack, type MapMode, ModeMenu } from './components/ModeMenu';
 import { PlaceBackBar, SavedFilters, SavedHeader, SavedList } from './components/SavedList';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
+import type { UserLocationFix } from './components/UserLocation';
 import { isSameSelection, pointOf, resolveSelection, type Selection, TRIP_PADDING } from './data/derive';
 import { matchesFilter, NO_FILTER, type SavedFilter } from './data/saved';
 import { TripProvider, useTrip } from './data/TripContext';
@@ -44,6 +45,8 @@ function AppShell() {
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
   const [dayList, setDayList] = useState<HTMLDivElement | null>(null);
   const [savedList, setSavedList] = useState<HTMLDivElement | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocationFix | null>(null);
   const listScroll = useRef(0);
   const scrubber = useRef<ScrubberFollow>(null);
   /** The sheet's height around the last stop, to aim the camera before the next one is measured. */
@@ -105,6 +108,30 @@ function AppShell() {
     select(null);
     const bounds = mode === 'saved' && places.length ? boundsOf(places) : trip.tripBounds;
     fit(bounds, routeInset(moveSheet('peek')));
+  };
+
+  const goToMe = () => {
+    if (!navigator.geolocation || locating) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocating(false);
+        setUserLocation({
+          lng: coords.longitude,
+          lat: coords.latitude,
+          accuracy: coords.accuracy,
+        });
+        mapRef.current?.flyTo({
+          center: [coords.longitude, coords.latitude],
+          zoom: LOCATE_ZOOM,
+          padding: padding(reveal()),
+          retainPadding: false,
+          essential: true,
+        });
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 },
+    );
   };
 
   const changeMode = (m: MapMode) => {
@@ -201,9 +228,13 @@ function AppShell() {
           routes={routes}
           popups={!isMobile}
           initialPadding={padding(routeInset('peek'), TRIP_PADDING)}
+          userLocation={userLocation}
         >
           <ModeMenu mode={mode} onChange={changeMode} />
-          <FitMapButton onClick={fitAll} />
+          <MapFabStack>
+            <FitMapButton onClick={fitAll} />
+            <LocateMapButton onClick={goToMe} busy={locating} />
+          </MapFabStack>
         </TripMap>
       )}
       {isMobile && (
