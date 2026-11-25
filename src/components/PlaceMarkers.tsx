@@ -7,6 +7,9 @@ import { cn } from '@/lib/utils';
 import type { SavedPlace } from '../data/saved';
 import { placeColor, placeIcon } from '../lib/placeIcon';
 
+/** Group crowded saved places into numbered circles; when off, every place is its own marker. */
+const CLUSTER_PLACES = false;
+
 const SOURCE = 'saved-places';
 export const CLUSTER_LAYER = 'saved-clusters';
 
@@ -41,7 +44,7 @@ interface Props {
   onClick: (place: SavedPlace) => void;
 }
 
-/** Saved places, clustered when they crowd; places out of a cluster are HTML markers so they can show icons. */
+/** Saved places as HTML markers so they can show icons, clustered when they crowd if `CLUSTER_PLACES` is on. */
 export function PlaceMarkers({ places, selected, onClick }: Props) {
   const data = useMemo<FeatureCollection<Point>>(
     () => ({
@@ -58,12 +61,12 @@ export function PlaceMarkers({ places, selected, onClick }: Props) {
 
   return (
     <>
-      <Source id={SOURCE} type="geojson" data={data} cluster clusterRadius={42} clusterMaxZoom={13}>
+      <Source id={SOURCE} type="geojson" data={data} cluster={CLUSTER_PLACES} clusterRadius={42} clusterMaxZoom={13}>
         <Layer {...clusterLayer} />
         <Layer {...countLayer} />
       </Source>
       {places
-        .filter((p) => loose.has(p.id) || p.id === selected?.id)
+        .filter((p) => !CLUSTER_PLACES || loose.has(p.id) || p.id === selected?.id)
         .map((place) => {
           const active = place.id === selected?.id;
           return (
@@ -101,7 +104,7 @@ function useUnclusteredIds() {
   const [ids, setIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || !CLUSTER_PLACES) return;
     const m = map.getMap();
     let key = '';
     const update = () => {
