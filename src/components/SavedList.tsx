@@ -229,21 +229,16 @@ function PlaceThumb({ place }: { place: SavedPlace }) {
 }
 
 /** Heads a place's detail in the bottom sheet, where the list it came from is hidden. */
-export function PlaceBackBar({ index, count, onBack }: { index: number; count: number; onBack: () => void }) {
+export function PlaceBackBar({ onBack }: { onBack: () => void }) {
   return (
-    <div className="sticky top-0 z-10 border-b bg-background px-4 pt-1 pb-2.5">
+    <div className="sticky top-0 z-10 border-b bg-background">
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center gap-1.5 rounded-sm text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-h-6 w-full touch-manipulation items-center gap-1.5 px-4 text-left text-[15px] font-semibold select-none [-webkit-touch-callout:none] [-webkit-user-select:none] outline-none transition-colors duration-100 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-muted [@media(pointer:coarse)]:min-h-11"
         onClick={onBack}
       >
-        <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={2} className="shrink-0" />
-        <span className="font-semibold">Saved places</span>
-        {index >= 0 && (
-          <span className="ml-auto text-muted-foreground tabular-nums">
-            {index + 1} of {count}
-          </span>
-        )}
+        <HugeiconsIcon icon={ArrowLeft01Icon} size={18} strokeWidth={2} className="shrink-0" aria-hidden="true" />
+        Saved places
       </button>
     </div>
   );

@@ -142,22 +142,24 @@ export function Row({
     >
       <ItemMedia>{icon}</ItemMedia>
       <ItemContent className="min-w-0 gap-0">
-        <div className={cn(overline, 'mb-[3px] flex flex-wrap items-center gap-1')}>
-          {labelIcon && <HugeiconsIcon icon={labelIcon} size={12} strokeWidth={2} className="shrink-0" />}
-          {label}
-        </div>
-        <div className="mb-0.5 flex items-start gap-2">
-          <h3 className="min-w-0 flex-1 text-sm leading-[1.3] font-bold">
-            {/* Stretched over the whole row so the row is one click target. */}
-            <button
-              type="button"
-              className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
-              aria-pressed={active}
-              onClick={onClick}
-            >
-              {title}
-            </button>
-          </h3>
+        <div className="mb-1 flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm leading-[1.3] font-bold">
+              {/* Stretched over the whole row so the row is one click target. */}
+              <button
+                type="button"
+                className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
+                aria-pressed={active}
+                onClick={onClick}
+              >
+                {title}
+              </button>
+            </h3>
+            <div className={cn(overline, 'mt-1 flex flex-wrap items-center gap-1 leading-4')}>
+              {labelIcon && <HugeiconsIcon icon={labelIcon} size={12} strokeWidth={2} className="shrink-0" />}
+              {label}
+            </div>
+          </div>
           <VisitedToggle selection={selection} />
         </div>
         {status}

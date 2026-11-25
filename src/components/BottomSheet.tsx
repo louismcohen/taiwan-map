@@ -17,8 +17,10 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 
 export type Snap = 'peek' | 'half' | 'full';
-/** Visible height at each stop, and `fit`, the content's height, as `fit` sheets show it. */
-export type SheetHeights = Record<Snap | 'fit', number>;
+/** `mid` is half the screen; `max` is as tall as a `fit` sheet currently gets. */
+export type DetailRest = 'mid' | 'max';
+/** Visible height at each stop, `mid` (half the screen), and `fit`, the content's height. */
+export type SheetHeights = Record<Snap | 'fit' | 'mid', number>;
 
 /** Lets content of a `fit` sheet resize it in step with its own animations. */
 export interface SheetStretch {
@@ -39,6 +41,7 @@ interface Size {
   peekTop: number;
   contentHeight: number;
   safeBottom: number;
+  viewport: number;
 }
 
 const fitHeightOf = (s: Size, extra = 0) =>
@@ -46,6 +49,11 @@ const fitHeightOf = (s: Size, extra = 0) =>
 
 /** Share of the full sheet height shown at the middle snap. */
 const HALF_RATIO = 0.55;
+/**
+ * Half the screen, where a selected pin's sheet opens. At most 1, so Base UI reads it as a share of
+ * the viewport rather than a pixel height.
+ */
+const MID_SCREEN = 0.5;
 /** Base UI treats 1 as the popup's full height and only marks that snap point `data-expanded`. */
 const FULL = 1;
 /**
@@ -67,6 +75,9 @@ interface Props {
   fit?: boolean;
   /** Called on a swipe down past `peek` or Escape; without it, the sheet resists there instead. */
   onDismiss?: () => void;
+  /** Where a `fit` sheet rests: half the screen, or the tallest it currently grows. */
+  rest?: DetailRest;
+  onRestChange?: (rest: DetailRest) => void;
   /** An element in `children` whose top marks where `peek` ends; without it, `peek` shows just the handle. */
   peekTo?: HTMLElement | null;
   /** The scrolling element that holds `children`. */
@@ -86,6 +97,7 @@ function swallowNextClick() {
 
 /**
  * Always-open, non-modal drawer that snaps between `peek` (the handle, down to `peekTo`), `half` and `full`.
+ * A `fit` sheet opens at half the screen and can be dragged up to its current height, then back.
  * The body scrolls only when fully expanded; otherwise any vertical drag moves the sheet.
  */
 export function BottomSheet({
@@ -94,6 +106,8 @@ export function BottomSheet({
   onHeightsChange,
   fit = false,
   onDismiss,
+  rest = 'mid',
+  onRestChange,
   peekTo,
   bodyRef,
   children,
@@ -102,7 +116,14 @@ export function BottomSheet({
   const [popup, setPopup] = useState<HTMLDivElement | null>(null);
   const [head, setHead] = useState<HTMLDivElement | null>(null);
   const [content, setContent] = useState<HTMLDivElement | null>(null);
-  const [size, setSize] = useState<Size>({ full: 0, headBottom: 0, peekTop: 0, contentHeight: 0, safeBottom: 0 });
+  const [size, setSize] = useState<Size>({
+    full: 0,
+    headBottom: 0,
+    peekTop: 0,
+    contentHeight: 0,
+    safeBottom: 0,
+    viewport: 0,
+  });
   const [animated, setAnimated] = useState(false);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const dragged = useRef(false);
@@ -113,7 +134,11 @@ export function BottomSheet({
   const { full, headBottom, safeBottom } = size;
   const peek = Math.min(headBottom + size.peekTop + safeBottom, full);
   const half = Math.min(Math.max(Math.round(full * HALF_RATIO), peek), full);
+  const mid = Math.min(full, Math.round(size.viewport * MID_SCREEN));
   const fitHeight = fitHeightOf(size);
+  // Taller than half the screen, so the sheet can still be dragged up to the height it already had.
+  const expandable = fit && mid > 0 && fitHeight > mid + 1;
+  const hugContent = fit && (!expandable || rest === 'max');
 
   useLayoutEffect(() => {
     if (!popup || !head || !content) return;
@@ -124,6 +149,7 @@ export function BottomSheet({
       peekTop: peekTo?.offsetTop ?? 0,
       contentHeight: content.offsetHeight,
       safeBottom: Number.parseFloat(getComputedStyle(popup).paddingBottom) || 0,
+      viewport: popup.parentElement?.offsetHeight || popup.ownerDocument.documentElement.clientHeight,
     });
     readSize.current = read;
     const measure = () => setSize(read());
@@ -132,6 +158,7 @@ export function BottomSheet({
     observer.observe(popup);
     observer.observe(head);
     observer.observe(content);
+    if (popup.parentElement) observer.observe(popup.parentElement);
     for (let el = peekTo?.previousElementSibling; el; el = el.previousElementSibling) observer.observe(el);
     return () => {
       observer.disconnect();
@@ -141,7 +168,7 @@ export function BottomSheet({
 
   // Written straight to the popup so following a finger doesn't re-render the sheet.
   const stretch = useMemo<SheetStretch | null>(() => {
-    if (!fit || !popup) return null;
+    if (!hugContent || !popup) return null;
     let timer = 0;
     const transition = (duration: string, easing = '') => {
       popup.style.transitionDuration = duration;
@@ -164,7 +191,7 @@ export function BottomSheet({
         timer = window.setTimeout(() => transition(''), duration);
       },
     };
-  }, [fit, popup]);
+  }, [hugContent, popup]);
 
   useLayoutEffect(() => {
     if (!stretch || !popup) return;
@@ -176,8 +203,8 @@ export function BottomSheet({
   }, [stretch, popup]);
 
   useLayoutEffect(() => {
-    if (full) onHeightsChange({ peek, half, full, fit: fitHeight });
-  }, [peek, half, full, fitHeight, onHeightsChange]);
+    if (full) onHeightsChange({ peek, half, full, fit: fitHeight, mid });
+  }, [peek, half, full, fitHeight, mid, onHeightsChange]);
 
   // Until the first measurement the popup sits fully open; don't animate it down to `peek`.
   useLayoutEffect(() => {
@@ -187,9 +214,11 @@ export function BottomSheet({
   }, [full, animated]);
 
   // Content as tall as the sheet counts as fully expanded, which is what lets the body scroll.
-  const fitValue = fitHeight >= full ? FULL : fitHeight;
-  const snapPoints = fit ? [fitValue] : [peek, half, FULL];
-  const snapValue = (s: Snap) => (fit ? fitValue : s === 'full' ? FULL : s === 'half' ? half : peek);
+  const maxPoint = fitHeight >= full - 1 ? FULL : fitHeight;
+  const fitPoints = expandable ? [MID_SCREEN, maxPoint] : [maxPoint];
+  const fitPoint = expandable && rest === 'mid' ? MID_SCREEN : maxPoint;
+  const snapPoints = fit ? fitPoints : [peek, half, FULL];
+  const activePoint = fit ? fitPoint : snap === 'full' ? FULL : snap === 'half' ? half : peek;
 
   const handleSnapPointChange = (
     value: DrawerPrimitive.Root.SnapPoint | null,
@@ -204,7 +233,13 @@ export function BottomSheet({
       else if (snap !== 'peek') onSnapChange('peek');
       return;
     }
-    if (fit) return;
+    if (fit) {
+      // One stop means the content is already under half the screen; dragging it doesn't pick a new rest.
+      if (!expandable) return;
+      const next = value === MID_SCREEN ? 'mid' : 'max';
+      if (next !== rest) onRestChange?.(next);
+      return;
+    }
     const next: Snap = value === FULL ? 'full' : value === peek ? 'peek' : 'half';
     if (next !== snap) onSnapChange(next);
   };
@@ -234,7 +269,8 @@ export function BottomSheet({
       modal={false}
       disablePointerDismissal
       snapPoints={full ? snapPoints : undefined}
-      snapPoint={full ? snapValue(snap) : null}
+      snapPoint={full ? activePoint : null}
+      snapToSequentialPoints={expandable}
       onSnapPointChange={handleSnapPointChange}
     >
       {/* Fully expanded, the sheet leaves a strip of map showing below the status bar / Dynamic Island. */}
