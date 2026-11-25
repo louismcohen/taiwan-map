@@ -95,7 +95,8 @@ export function TripMap({
             places={places}
             selected={selection?.kind === 'place' ? selection.place : null}
             onClick={(place) =>
-              isSameSelection(selection, { kind: 'place', place }) ? onReset() : onSelect({ kind: 'place', place })
+              // Unlike stops, clearing a place keeps the current zoom instead of fitting the whole map.
+              isSameSelection(selection, { kind: 'place', place }) ? onSelect(null) : onSelect({ kind: 'place', place })
             }
           />
         )}

@@ -118,6 +118,11 @@ function AppShell() {
 
   const focus = (sel: Selection) => {
     if (isSameSelection(selection, sel)) {
+      // Places stay at the current zoom; stops still fit the whole trip like the map pin toggle.
+      if (sel.kind === 'place') {
+        select(null);
+        return;
+      }
       reset();
       return;
     }
