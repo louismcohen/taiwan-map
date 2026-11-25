@@ -13,6 +13,7 @@ import { isSameSelection, pointOf, resolveSelection, type Selection, TRIP_PADDIN
 import { matchesFilter, NO_FILTER, type SavedFilter } from './data/saved';
 import { TripProvider, useTrip } from './data/TripContext';
 import type { DayKey } from './data/trip';
+import { VisitedProvider } from './data/visited';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useRoutes } from './hooks/useRoutes';
 import { boundsOf } from './lib/geo';
@@ -29,7 +30,9 @@ export function App() {
   // Trip is locked to Coast (A). B/C + FridayPlanPicker remain in the codebase for later.
   return (
     <TripProvider>
-      <AppShell />
+      <VisitedProvider>
+        <AppShell />
+      </VisitedProvider>
     </TripProvider>
   );
 }

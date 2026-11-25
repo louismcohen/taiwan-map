@@ -4,6 +4,7 @@ import { Popup } from 'react-map-gl/mapbox';
 import { describe, pointOf, type Selection } from '../data/derive';
 import { useTrip } from '../data/TripContext';
 import { NoteBlock, PlaceStatusChips } from './PlaceStatus';
+import { VisitedToggle } from './VisitedToggle';
 
 function keyOf(sel: Selection) {
   if (sel.kind === 'stop') return `stop-${sel.stop.n}`;
@@ -44,7 +45,10 @@ export function InfoPopup({ selection }: { selection: Selection }) {
       <div className="mb-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>
         {label}
       </div>
-      <h3 className="mb-1.5 text-[15px] font-bold">{title}</h3>
+      <div className="mb-1.5 flex items-start gap-2">
+        <h3 className="min-w-0 flex-1 text-[15px] leading-[1.3] font-bold">{title}</h3>
+        <VisitedToggle selection={selection} />
+      </div>
       {subtitle && <p className="-mt-1 mb-1.5 text-xs text-muted-foreground">{subtitle}</p>}
       {place && <PlaceStatusChips place={place} until className="mb-2" />}
       {place?.note ? (

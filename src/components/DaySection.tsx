@@ -7,6 +7,7 @@ import { useTrip } from '../data/TripContext';
 import { type DayKey, NIGHT_NAMES } from '../data/trip';
 import { stopIcon } from '../lib/stopIcon';
 import { NoteBlock } from './PlaceStatus';
+import { VisitedToggle } from './VisitedToggle';
 
 interface Props {
   day: DayKey;
@@ -36,6 +37,7 @@ export function DaySection({ day, selection, onSelect }: Props) {
         .map((stop) => (
           <Row
             key={stop.n}
+            selection={{ kind: 'stop', stop }}
             active={selection?.kind === 'stop' && isSameSelection(selection, { kind: 'stop', stop })}
             onClick={() => onSelect({ kind: 'stop', stop })}
             icon={
@@ -63,6 +65,7 @@ export function DaySection({ day, selection, onSelect }: Props) {
             {towns.map((town) => (
               <Row
                 key={town.name}
+                selection={{ kind: 'town', town, day }}
                 active={selection?.kind === 'town' && isSameSelection(selection, { kind: 'town', town, day })}
                 onClick={() => onSelect({ kind: 'town', town, day })}
                 icon={
@@ -93,6 +96,7 @@ export function DaySection({ day, selection, onSelect }: Props) {
 const cssVar = (c: string) => ({ '--c': c }) as CSSProperties;
 
 interface RowProps {
+  selection: Selection;
   active: boolean;
   onClick: () => void;
   icon: ReactNode;
@@ -109,7 +113,19 @@ interface RowProps {
   clamp?: boolean;
 }
 
-export function Row({ active, onClick, icon, label, labelIcon, title, status, note, body, clamp }: RowProps) {
+export function Row({
+  selection,
+  active,
+  onClick,
+  icon,
+  label,
+  labelIcon,
+  title,
+  status,
+  note,
+  body,
+  clamp,
+}: RowProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,7 +136,7 @@ export function Row({ active, onClick, icon, label, labelIcon, title, status, no
     <Item
       ref={ref}
       className={cn(
-        'relative -mx-2.5 w-auto flex-nowrap items-start gap-3 rounded-[10px] p-2.5 duration-150 hover:bg-accent',
+        'relative isolate -mx-2.5 w-auto flex-nowrap items-start gap-3 rounded-[10px] p-2.5 duration-150 hover:bg-accent',
         active && 'bg-accent',
       )}
     >
@@ -130,17 +146,20 @@ export function Row({ active, onClick, icon, label, labelIcon, title, status, no
           {labelIcon && <HugeiconsIcon icon={labelIcon} size={12} strokeWidth={2} className="shrink-0" />}
           {label}
         </div>
-        <h3 className="mb-0.5 text-sm leading-[1.3] font-bold">
-          {/* Stretched over the whole row so the row is one click target. */}
-          <button
-            type="button"
-            className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
-            aria-pressed={active}
-            onClick={onClick}
-          >
-            {title}
-          </button>
-        </h3>
+        <div className="mb-0.5 flex items-start gap-2">
+          <h3 className="min-w-0 flex-1 text-sm leading-[1.3] font-bold">
+            {/* Stretched over the whole row so the row is one click target. */}
+            <button
+              type="button"
+              className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
+              aria-pressed={active}
+              onClick={onClick}
+            >
+              {title}
+            </button>
+          </h3>
+          <VisitedToggle selection={selection} />
+        </div>
         {status}
         {note && <NoteBlock className="mt-0.5">{note}</NoteBlock>}
         {body && (
