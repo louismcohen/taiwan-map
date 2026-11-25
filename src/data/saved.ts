@@ -1,3 +1,4 @@
+import { type HourPeriod, isPlaceDetails, PLACE_DETAILS } from './placeDetails';
 import { CATEGORIES, type Category, type Kind } from './placeKinds';
 import { PLACE_OVERRIDES } from './placeOverrides';
 import { SAVED_PLACES, type SyncedPlace } from './places';
@@ -25,6 +26,17 @@ export interface SavedPlace {
   category: Category;
   kind?: Kind;
   region: Region;
+  /** Stable Google Places ID (`ChIJ…`), when enrichment found a match. */
+  placeId?: string;
+  website?: string;
+  /** Monday-first opening-hours lines from Places. */
+  hours?: string[];
+  /** Structured periods for open-now checks in Asia/Taipei. */
+  hourPeriods?: HourPeriod[];
+  editorial?: string;
+  reviewSummary?: string;
+  cashOnly?: boolean;
+  photos?: string[];
 }
 
 export interface SavedFilter {
@@ -85,6 +97,8 @@ export function savedPlacesFor(stops: Stop[]) {
     }
     const category = o.category && CATEGORIES.includes(o.category) ? o.category : synced.category;
     const kind = o.kind === null ? undefined : (o.kind ?? (o.category ? undefined : synced.kind));
+    const details = PLACE_DETAILS[synced.id];
+    const enriched = isPlaceDetails(details) ? details : undefined;
     places.push({
       id: synced.id,
       name: o.name ?? synced.name,
@@ -95,6 +109,14 @@ export function savedPlacesFor(stops: Stop[]) {
       category,
       ...(kind && { kind }),
       region: regionOf(synced),
+      ...(enriched?.placeId && { placeId: enriched.placeId }),
+      ...(enriched?.website && { website: enriched.website }),
+      ...(enriched?.hours && { hours: enriched.hours }),
+      ...(enriched?.hourPeriods && { hourPeriods: enriched.hourPeriods }),
+      ...(enriched?.editorial && { editorial: enriched.editorial }),
+      ...(enriched?.reviewSummary && { reviewSummary: enriched.reviewSummary }),
+      ...(enriched?.cashOnly && { cashOnly: true }),
+      ...(enriched?.photos?.length && { photos: enriched.photos }),
     });
   }
   return { places, onRoute };

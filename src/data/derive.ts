@@ -127,6 +127,11 @@ export interface Description {
   body: string;
   href: string | undefined;
   photos: string[];
+  website?: string;
+  hours?: string[];
+  editorial?: string;
+  reviewSummary?: string;
+  cashOnly?: boolean;
 }
 
 export function describe(sel: Selection, days: Record<DayKey, Day> = DAYS): Description {
@@ -139,7 +144,12 @@ export function describe(sel: Selection, days: Record<DayKey, Day> = DAYS): Desc
       subtitle: place.savedName,
       body: place.note ?? '',
       href: savedPlaceUrl(place),
-      photos: [],
+      photos: place.photos ?? [],
+      ...(place.website && { website: place.website }),
+      ...(place.hours && { hours: place.hours }),
+      ...(place.editorial && { editorial: place.editorial }),
+      ...(place.reviewSummary && { reviewSummary: place.reviewSummary }),
+      ...(place.cashOnly && { cashOnly: true }),
     };
   }
   if (sel.kind === 'stop') {

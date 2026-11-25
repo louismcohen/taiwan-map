@@ -6,6 +6,7 @@ import { isPrimary, isSameSelection, type Selection } from '../data/derive';
 import { useTrip } from '../data/TripContext';
 import { type DayKey, NIGHT_NAMES } from '../data/trip';
 import { stopIcon } from '../lib/stopIcon';
+import { NoteBlock } from './PlaceStatus';
 
 interface Props {
   day: DayKey;
@@ -98,12 +99,17 @@ interface RowProps {
   label: string;
   labelIcon?: IconSvgElement;
   title: string;
+  /** Status line under the title (e.g. Open · Cash only · hours). */
+  status?: ReactNode;
+  /** Your Google Maps note — shown in the tinted note panel. */
+  note?: string;
+  /** Secondary text on the normal background (editorial, stop desc). */
   body?: string;
   /** Cut the body to two lines, for long notes the detail shows in full. */
   clamp?: boolean;
 }
 
-export function Row({ active, onClick, icon, label, labelIcon, title, body, clamp }: RowProps) {
+export function Row({ active, onClick, icon, label, labelIcon, title, status, note, body, clamp }: RowProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,7 +126,7 @@ export function Row({ active, onClick, icon, label, labelIcon, title, body, clam
     >
       <ItemMedia>{icon}</ItemMedia>
       <ItemContent className="min-w-0 gap-0">
-        <div className={cn(overline, 'mb-[3px] flex items-center gap-1')}>
+        <div className={cn(overline, 'mb-[3px] flex flex-wrap items-center gap-1')}>
           {labelIcon && <HugeiconsIcon icon={labelIcon} size={12} strokeWidth={2} className="shrink-0" />}
           {label}
         </div>
@@ -135,6 +141,8 @@ export function Row({ active, onClick, icon, label, labelIcon, title, body, clam
             {title}
           </button>
         </h3>
+        {status}
+        {note && <NoteBlock className="mt-0.5">{note}</NoteBlock>}
         {body && (
           <ItemDescription className={cn('text-[12.5px] leading-[1.45]', clamp ? 'line-clamp-2' : 'line-clamp-none')}>
             {body}

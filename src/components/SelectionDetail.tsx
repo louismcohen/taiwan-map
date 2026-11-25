@@ -1,4 +1,11 @@
-import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, Route01Icon } from '@hugeicons/core-free-icons';
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  ArrowUpRight01Icon,
+  Money04Icon,
+  Route01Icon,
+  Time04Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { type MouseEvent, type PointerEvent, type RefObject, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -10,6 +17,8 @@ import { describe, isSameSelection, type Selection } from '../data/derive';
 import { nearestStop } from '../data/saved';
 import { useTrip } from '../data/TripContext';
 import { fmtDistance } from '../lib/format';
+import { hoursForToday } from '../lib/hours';
+import { NoteBlock } from './PlaceStatus';
 
 interface Props {
   selection: Selection;
@@ -238,8 +247,10 @@ function PagingButtons({ selection, sequence, onSelect }: Props) {
 
 function Panel({ selection, sequence, onSelect, className, inert }: Props & { className?: string; inert?: boolean }) {
   const { days, stops } = useTrip();
-  const { color, label, title, subtitle, body, href, photos } = describe(selection, days);
+  const { color, label, title, subtitle, body, href, photos, website, hours, editorial, reviewSummary, cashOnly } =
+    describe(selection, days);
   const near = selection.kind === 'place' ? nearestStop(selection.place, stops) : null;
+  const todayHours = hours?.length ? hoursForToday(hours) : undefined;
 
   return (
     <div className={cn('w-full px-4 pt-1.5 pb-3', className)} inert={inert}>
@@ -253,7 +264,35 @@ function Panel({ selection, sequence, onSelect, className, inert }: Props & { cl
         <h3 className="mt-0.5 text-[17px] leading-[1.3] font-bold">{title}</h3>
         {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
-      {body && <p className="mb-3 text-[13px] leading-[1.45] whitespace-pre-line text-muted-foreground">{body}</p>}
+      {selection.kind === 'place' && body ? (
+        <NoteBlock className="mb-3 text-[13px] whitespace-pre-line">{body}</NoteBlock>
+      ) : (
+        body && <p className="mb-3 text-[13px] leading-[1.45] whitespace-pre-line text-muted-foreground">{body}</p>
+      )}
+      {editorial && <p className="mb-3 text-[13px] leading-[1.45] text-muted-foreground">{editorial}</p>}
+      {reviewSummary && <p className="mb-3 text-[13px] leading-[1.45] text-muted-foreground">{reviewSummary}</p>}
+      {(cashOnly || hours?.length) && (
+        <div className="mb-3 space-y-1.5 text-xs leading-[1.45] text-muted-foreground">
+          {cashOnly && (
+            <p className="flex items-center gap-1.5">
+              <HugeiconsIcon icon={Money04Icon} size={14} strokeWidth={2} className="shrink-0" />
+              <span className="font-semibold text-foreground">Cash only</span>
+            </p>
+          )}
+          {hours?.length && (
+            <div className="flex items-start gap-1.5">
+              <HugeiconsIcon icon={Time04Icon} size={14} strokeWidth={2} className="mt-px shrink-0" />
+              <ul className="space-y-0.5">
+                {hours.map((line) => (
+                  <li key={line} className={line === todayHours ? 'font-semibold text-foreground' : undefined}>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
       {near && near.km < NEAR_ROUTE_KM && (
         <p className="mb-3 flex items-start gap-1.5 text-xs leading-[1.45] text-muted-foreground">
           <HugeiconsIcon icon={Route01Icon} size={14} strokeWidth={2} className="mt-px shrink-0" />
@@ -274,22 +313,40 @@ function Panel({ selection, sequence, onSelect, className, inert }: Props & { cl
                 src={photo}
                 alt={`${title} (${i + 1} of ${photos.length})`}
                 draggable={false}
+                // Sheet/carousel images are revealed after interaction — keep them off the LCP path.
+                fetchPriority="low"
+                loading="lazy"
                 className="h-32 w-44 rounded-md bg-muted object-cover"
               />
             </a>
           ))}
         </div>
       )}
-      {href && (
-        <a
-          className="inline-flex items-center gap-0.5 text-[13px] font-semibold underline"
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in Google Maps
-          <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={2} />
-        </a>
+      {(href || website) && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          {href && (
+            <a
+              className="inline-flex items-center gap-0.5 text-[13px] font-semibold underline"
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open in Google Maps
+              <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={2} />
+            </a>
+          )}
+          {website && (
+            <a
+              className="inline-flex items-center gap-0.5 text-[13px] font-semibold underline"
+              href={website}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Website
+              <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={2} />
+            </a>
+          )}
+        </div>
       )}
     </div>
   );
