@@ -2,7 +2,14 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "includes": ["**", "!public/photos", "!src/components/ui", "!src/data/photos.ts"]
+    "includes": [
+      "**",
+      "!public/photos",
+      "!src/components/ui",
+      "!src/data/photos.ts",
+      "!src/data/places.ts",
+      "!src/data/placeDetails.ts"
+    ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "single" } },

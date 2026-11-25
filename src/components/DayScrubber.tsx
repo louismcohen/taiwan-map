@@ -13,7 +13,7 @@ import {
   useState,
 } from 'react';
 import { cn } from '@/lib/utils';
-import { DAY_KEYS, isPrimary, isSameSelection, type NumberedStop, type Selection } from '../data/derive';
+import { DAY_KEYS, isPrimary, isSameSelection, type NumberedStop, type RouteSelection } from '../data/derive';
 import { useTrip } from '../data/TripContext';
 import type { DayKey } from '../data/trip';
 import { useDayScroll } from '../hooks/useDayScroll';
@@ -103,7 +103,7 @@ export interface ScrubberFollow {
   settle: (duration: number, easing: string) => void;
 }
 
-const dayOf = (sel: Selection) => (sel.kind === 'stop' ? sel.stop.day : sel.day);
+const dayOf = (sel: RouteSelection) => (sel.kind === 'stop' ? sel.stop.day : sel.day);
 
 interface Props {
   /** The scrolling element that holds the day sections. */
@@ -113,7 +113,7 @@ interface Props {
   sticky?: boolean;
   onPick?: (day: DayKey) => void;
   /** A stop shown in place of the list: the bar marks it, and the summary row leads back to the list. */
-  current?: { selection: Selection; onBack: () => void };
+  current?: { selection: RouteSelection; onBack: () => void };
   followRef?: Ref<ScrubberFollow>;
 }
 
@@ -122,7 +122,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
   const trip = useTrip();
   const layout = useMemo(() => layoutOf(trip.stops, trip.nights), [trip.stops, trip.nights]);
 
-  const positionOf = (sel: Selection) => {
+  const positionOf = (sel: RouteSelection) => {
     const day = dayOf(sel);
     const rows = trip.itinerary.filter((s) => dayOf(s) === day);
     const index = Math.max(
@@ -132,7 +132,7 @@ export function DayScrubber({ list, routes, sticky = false, onPick, current, fol
     return { day, progress: (index + 0.5) / rows.length, index, count: rows.length };
   };
 
-  const barOf = (sel: Selection) => {
+  const barOf = (sel: RouteSelection) => {
     const { day, progress } = positionOf(sel);
     return barAt(layout, day, progress);
   };

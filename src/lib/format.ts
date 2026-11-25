@@ -6,6 +6,9 @@ export const gmapsUrl = (s: Stop) =>
 
 export const fmtKm = (m: number) => `${(m / 1000).toFixed(0)} km`;
 
+export const fmtDistance = (km: number) =>
+  km < 1 ? `${Math.max(1, Math.round(km * 10)) * 100} m` : `${km.toFixed(1)} km`;
+
 export const fmtTime = (sec: number) => {
   const h = Math.floor(sec / 3600);
   const m = Math.round((sec % 3600) / 60);
