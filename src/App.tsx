@@ -61,6 +61,8 @@ function AppShell() {
   const showingStop = !!selection;
 
   const places = useMemo(() => trip.saved.filter((p) => matchesFilter(p, filter)), [trip.saved, filter]);
+  /** What "show all" frames: the scooter trip, or the pins visible in saved mode. */
+  const overviewBounds = mode === 'saved' && places.length ? boundsOf(places) : trip.tripBounds;
   const sequence = useMemo<Selection[]>(
     () => (mode === 'route' ? trip.itinerary : places.map((place) => ({ kind: 'place', place }))),
     [mode, trip.itinerary, places],
@@ -135,8 +137,7 @@ function AppShell() {
   /** Manual overview: clear selection and fit whatever the current mode is showing. */
   const fitAll = () => {
     select(null);
-    const bounds = mode === 'saved' && places.length ? boundsOf(places) : trip.tripBounds;
-    fit(bounds, routeInset(moveSheet('peek')));
+    fit(overviewBounds, routeInset(moveSheet('peek')));
   };
 
   const goToMe = () => {
@@ -274,6 +275,7 @@ function AppShell() {
           onReset={reset}
           routes={routes}
           popups={!isMobile}
+          initialBounds={overviewBounds}
           initialPadding={padding(routeInset('peek'), TRIP_PADDING)}
           userLocation={userLocation}
         >
