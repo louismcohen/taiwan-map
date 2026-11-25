@@ -29,6 +29,9 @@
   --thu: #0f8b8d;
   --fri: #e07a1f;
   --sat: #d1495b;
+  /* Shared by filter chips + map pin enter/exit so they stay in lockstep. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-filter: 150ms;
 }
 
 @theme inline {
@@ -106,13 +109,5 @@
 @media (max-width: 760px) {
   body {
     overscroll-behavior: none;
-  }
-  #map .mapboxgl-ctrl-top-right {
-    top: env(safe-area-inset-top);
-  }
-  #map .mapboxgl-ctrl-bottom-left,
-  #map .mapboxgl-ctrl-bottom-right {
-    bottom: var(--bottom-inset, 0px);
-    transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
   }
 }

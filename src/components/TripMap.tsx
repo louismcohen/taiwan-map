@@ -1,7 +1,7 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PaddingOptions } from 'mapbox-gl';
-import { type CSSProperties, type ReactNode, type Ref, useState } from 'react';
-import MapGL, { type MapMouseEvent, type MapRef, NavigationControl, ScaleControl } from 'react-map-gl/mapbox';
+import { type ReactNode, type Ref, useState } from 'react';
+import MapGL, { type MapMouseEvent, type MapRef } from 'react-map-gl/mapbox';
 import { isSameSelection, type Selection } from '../data/derive';
 import type { SavedPlace } from '../data/saved';
 import { useTrip } from '../data/TripContext';
@@ -19,7 +19,7 @@ interface Props {
   mode: MapMode;
   /** Saved places to show in saved mode, already filtered. */
   places: SavedPlace[];
-  /** Overlay in the top-left corner, e.g. the mode menu. */
+  /** Overlay in the top corners, e.g. the mode menu and fit button. */
   children?: ReactNode;
   selection: Selection | null;
   onSelect: (selection: Selection | null) => void;
@@ -29,8 +29,6 @@ interface Props {
   popups: boolean;
   /** Only read when the map is created. */
   initialPadding: PaddingOptions;
-  /** Height of UI covering the bottom of the map; bottom controls sit above it. */
-  bottomInset: number;
 }
 
 const INTERACTIVE_LAYERS: Record<MapMode, string[]> = { route: [STAY_FILL_LAYER], saved: [CLUSTER_LAYER] };
@@ -46,7 +44,6 @@ export function TripMap({
   routes,
   popups,
   initialPadding,
-  bottomInset,
 }: Props) {
   const { towns, tripBounds } = useTrip();
   const [cursor, setCursor] = useState('');
@@ -67,7 +64,7 @@ export function TripMap({
   };
 
   return (
-    <div id="map" className="relative h-full flex-1" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
+    <div id="map" className="relative h-full flex-1">
       <MapGL
         ref={mapRef}
         mapboxAccessToken={getMapboxToken()}
@@ -79,8 +76,6 @@ export function TripMap({
         onMouseLeave={() => setCursor('')}
         onClick={handleClick}
       >
-        <NavigationControl position="top-right" />
-        <ScaleControl unit="metric" position="bottom-right" />
         {mode === 'route' && <StayZones />}
         {routes && <RouteLayers routes={routes} faint={mode === 'saved'} />}
         {mode === 'route' ? (

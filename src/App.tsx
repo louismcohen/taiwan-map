@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
 import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
-import { type MapMode, ModeMenu } from './components/ModeMenu';
+import { FitMapButton, type MapMode, ModeMenu } from './components/ModeMenu';
 import { PlaceBackBar, SavedFilters, SavedHeader, SavedList } from './components/SavedList';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayList, Sidebar, TripHeader } from './components/Sidebar';
@@ -58,8 +58,6 @@ function AppShell() {
     () => (mode === 'route' ? trip.itinerary : places.map((place) => ({ kind: 'place', place }))),
     [mode, trip.itinerary, places],
   );
-  const boundsFor = (m: MapMode, shown = places) => (m === 'saved' && shown.length ? boundsOf(shown) : trip.tripBounds);
-
   useEffect(() => {
     localStorage.setItem(MODE_KEY, mode);
   }, [mode]);
@@ -99,21 +97,28 @@ function AppShell() {
 
   const reset = () => {
     select(null);
-    fit(boundsFor(mode), routeInset(moveSheet('peek')));
+    fit(trip.tripBounds, routeInset(moveSheet('peek')));
+  };
+
+  /** Manual overview: clear selection and fit whatever the current mode is showing. */
+  const fitAll = () => {
+    select(null);
+    const bounds = mode === 'saved' && places.length ? boundsOf(places) : trip.tripBounds;
+    fit(bounds, routeInset(moveSheet('peek')));
   };
 
   const changeMode = (m: MapMode) => {
     if (m === mode) return;
     setMode(m);
     select(null);
-    fit(boundsFor(m), routeInset(moveSheet('peek')));
+    const inset = routeInset(moveSheet('peek'));
+    // Saved mode keeps the current camera; route mode reframes the trip.
+    if (m === 'route') fit(trip.tripBounds, inset);
   };
 
   const changeFilter = (f: SavedFilter) => {
-    const shown = trip.saved.filter((p) => matchesFilter(p, f));
     setFilter(f);
     if (selection?.kind === 'place' && !matchesFilter(selection.place, f)) select(null);
-    fit(boundsFor('saved', shown), routeInset(snap));
   };
 
   const focus = (sel: Selection) => {
@@ -170,8 +175,6 @@ function AppShell() {
     if (showingStop && sheetHeights) lastFit.current = sheetHeights.fit;
   }, [showingStop, sheetHeights]);
 
-  const bottomInset = showingStop && isMobile ? (sheetHeights?.fit ?? 0) : routeInset(snap);
-
   return (
     <>
       {!isMobile && (
@@ -198,9 +201,9 @@ function AppShell() {
           routes={routes}
           popups={!isMobile}
           initialPadding={padding(routeInset('peek'), TRIP_PADDING)}
-          bottomInset={bottomInset}
         >
           <ModeMenu mode={mode} onChange={changeMode} />
+          <FitMapButton onClick={fitAll} />
         </TripMap>
       )}
       {isMobile && (

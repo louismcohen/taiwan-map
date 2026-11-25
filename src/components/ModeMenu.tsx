@@ -1,5 +1,5 @@
 import { Menu } from '@base-ui/react/menu';
-import { Bookmark02Icon, Route01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { Bookmark02Icon, CenterFocusIcon, Route01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { SAVED_LIST } from '../data/places';
 import { useTrip } from '../data/TripContext';
@@ -9,6 +9,10 @@ export type MapMode = 'route' | 'saved';
 export const MAP_MODES: readonly MapMode[] = ['route', 'saved'];
 
 const ICONS: Record<MapMode, IconSvgElement> = { route: Route01Icon, saved: Bookmark02Icon };
+
+/** Shared chrome for the round map FABs (mode menu + fit). */
+const MAP_FAB =
+  'absolute top-[calc(env(safe-area-inset-top,0px)+10px)] z-10 grid size-[38px] cursor-pointer place-items-center rounded-full bg-white text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)] transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95';
 
 const synced = new Date(SAVED_LIST.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -28,7 +32,7 @@ export function ModeMenu({ mode, onChange }: Props) {
     <Menu.Root modal={false}>
       <Menu.Trigger
         aria-label={`Map: ${options[mode].title}`}
-        className="absolute top-[calc(env(safe-area-inset-top,0px)+10px)] left-2.5 z-10 grid size-[38px] cursor-pointer place-items-center rounded-full bg-white text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)] transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 data-[popup-open]:ring-2 data-[popup-open]:ring-ring/40"
+        className={`${MAP_FAB} left-2.5 data-[popup-open]:ring-2 data-[popup-open]:ring-ring/40`}
       >
         <HugeiconsIcon icon={ICONS[mode]} size={19} strokeWidth={2} />
       </Menu.Trigger>
@@ -63,5 +67,14 @@ export function ModeMenu({ mode, onChange }: Props) {
         </Menu.Positioner>
       </Menu.Portal>
     </Menu.Root>
+  );
+}
+
+/** Fits the map to the current mode's pins / trip. */
+export function FitMapButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" aria-label="Show all on map" onClick={onClick} className={`${MAP_FAB} right-2.5`}>
+      <HugeiconsIcon icon={CenterFocusIcon} size={19} strokeWidth={2} />
+    </button>
   );
 }

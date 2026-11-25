@@ -119,7 +119,7 @@ function Chip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-3 text-[13px] font-semibold whitespace-nowrap text-(--c,inherit) transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-3 text-[13px] font-semibold whitespace-nowrap text-(--c,inherit) transition-[color,background-color,border-color] duration-(--duration-filter) ease-(--ease-out) hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:duration-100',
         active && 'border-transparent bg-(--c,var(--foreground)) text-white hover:bg-(--c,var(--foreground))',
       )}
       style={color ? ({ '--c': color } as CSSProperties) : undefined}
