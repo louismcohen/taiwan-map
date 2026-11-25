@@ -250,22 +250,29 @@ function Panel({ selection, sequence, onSelect, className, inert }: Props & { cl
   const { days, stops } = useTrip();
   const { color, label, title, subtitle, body, href, photos, website, hours, editorial, reviewSummary, cashOnly } =
     describe(selection, days);
-  const near = selection.kind === 'place' ? nearestStop(selection.place, stops) : null;
+  const isPlace = selection.kind === 'place';
+  const near = isPlace ? nearestStop(selection.place, stops) : null;
   const todayHours = hours?.length ? hoursForToday(hours) : undefined;
+  const eyebrow = (
+    <div className="text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>
+      {label}
+    </div>
+  );
 
   return (
     <div className={cn('w-full px-4 pt-1.5 pb-3', className)} inert={inert}>
       <div className="pb-3">
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 text-[11px] font-semibold tracking-[0.05em] uppercase" style={{ color }}>
-            {label}
+        {!isPlace && (
+          <div className="mb-0.5 flex items-center gap-1.5">
+            <div className="min-w-0 flex-1">{eyebrow}</div>
+            <PagingButtons selection={selection} sequence={sequence} onSelect={onSelect} />
           </div>
-          <PagingButtons selection={selection} sequence={sequence} onSelect={onSelect} />
-        </div>
-        <div className="mt-0.5 flex items-start gap-2">
+        )}
+        <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="text-[17px] leading-[1.3] font-bold">{title}</h3>
-            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+            <h3 className="text-[17px] leading-[1.3] font-bold text-balance">{title}</h3>
+            {isPlace && <div className="mt-1">{eyebrow}</div>}
+            {subtitle && <p className="mt-0.5 text-xs text-pretty text-muted-foreground">{subtitle}</p>}
           </div>
           <VisitedToggle selection={selection} />
         </div>

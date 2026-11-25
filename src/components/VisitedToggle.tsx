@@ -22,19 +22,13 @@ export function VisitedToggle({ selection }: { selection: Selection }) {
         toggle(selection);
       }}
       className={cn(
-        'relative z-10 inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-2 text-[11px] font-semibold whitespace-nowrap transition-[color,background-color,border-color] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        'relative z-10 inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-2 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
         on
-          ? 'border-transparent bg-[#2f6b3c] text-white hover:bg-[#275c33]'
-          : 'border-border bg-background text-muted-foreground hover:border-foreground/25 hover:text-foreground',
+          ? 'border-transparent bg-[color-mix(in_srgb,#3d8b4f_16%,transparent)] text-[#2f6b3c] hover:bg-[color-mix(in_srgb,#3d8b4f_24%,transparent)]'
+          : 'border-border bg-background text-muted-foreground hover:text-foreground',
       )}
     >
-      <span className="grid size-3 place-items-center" aria-hidden>
-        {on ? (
-          <HugeiconsIcon icon={Tick02Icon} size={12} strokeWidth={2.6} />
-        ) : (
-          <span className="size-[9px] rounded-full border border-current" />
-        )}
-      </span>
+      <HugeiconsIcon icon={Tick02Icon} size={12} strokeWidth={2} />
       Visited
     </button>
   );

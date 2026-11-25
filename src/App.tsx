@@ -1,7 +1,7 @@
 import type { LngLatBoundsLike } from 'mapbox-gl';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
-import { BottomSheet, type SheetHeights, type Snap } from './components/BottomSheet';
+import { BottomSheet, type DetailRest, type SheetHeights, type Snap } from './components/BottomSheet';
 import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
 import { FitMapButton, LOCATE_ZOOM, LocateMapButton, MapFabStack, type MapMode, ModeMenu } from './components/ModeMenu';
 import { PlaceBackBar, SavedFilters, SavedHeader, SavedList } from './components/SavedList';
@@ -20,8 +20,8 @@ import { boundsOf } from './lib/geo';
 
 /** Keep in sync with the breakpoint in styles.css. */
 const MOBILE_QUERY = '(max-width: 760px)';
-/** A map tap closer than this to the sheet's top edge pans the map to keep the selection clear. */
-const REVEAL_MARGIN = 24;
+/** Matches the sheet's snap transition, so the pin and the sheet arrive together. */
+const SHEET_MOVE_MS = 350;
 const MODE_KEY = 'taiwan-map:mode';
 
 const storedMode = (): MapMode => (localStorage.getItem(MODE_KEY) === 'saved' ? 'saved' : 'route');
@@ -44,6 +44,7 @@ function AppShell() {
   const [filter, setFilter] = useState<SavedFilter>(NO_FILTER);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [snap, setSnap] = useState<Snap>('peek');
+  const [rest, setRest] = useState<DetailRest>('mid');
   const [sheetHeights, setSheetHeights] = useState<SheetHeights | null>(null);
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null);
   const [dayList, setDayList] = useState<HTMLDivElement | null>(null);
@@ -52,8 +53,8 @@ function AppShell() {
   const [userLocation, setUserLocation] = useState<UserLocationFix | null>(null);
   const listScroll = useRef(0);
   const scrubber = useRef<ScrubberFollow>(null);
-  /** The sheet's height around the last stop, to aim the camera before the next one is measured. */
-  const lastFit = useRef<number | null>(null);
+  /** The pin last framed against the sheet, so a shorter detail can be recentered once it's measured. */
+  const framed = useRef<{ sel: Selection; inset: number; fit: number } | null>(null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const routes = useRoutes(trip.segments);
   /** On phones, a stop replaces the list below the day scrubber, and the sheet shrinks to fit them. */
@@ -73,7 +74,7 @@ function AppShell() {
     setSelection((sel) => resolveSelection(sel, trip));
   }, [trip]);
 
-  // A full-height sheet hides the map anyway; aim the camera for when it comes back down.
+  // A fully expanded list hides the map; frame the overview for the stop it falls back to.
   const routeInset = (s: Snap) => (isMobile && sheetHeights ? sheetHeights[s === 'full' ? 'half' : s] : 0);
   const padding = (inset: number, base = 0) => ({ top: base, left: base, right: base, bottom: base + inset });
 
@@ -86,12 +87,37 @@ function AppShell() {
   const openSheet = () => moveSheet(snap === 'peek' ? 'half' : snap);
 
   const select = (sel: Selection | null) => {
+    if (!sel) framed.current = null;
     if (sel && !selection && sheetBody) listScroll.current = sheetBody.scrollTop;
+    // Opening a pin starts at half the screen, whatever height the sheet was dragged to before.
+    if (sel && !selection) setRest('mid');
     setSelection(sel);
   };
 
-  /** How much of the map's bottom the sheet covers once it shows a stop. */
-  const reveal = () => (isMobile ? (lastFit.current ?? routeInset('half')) : 0);
+  /**
+   * How much of the map a selected pin's sheet covers. It opens at half the screen, unless the
+   * content is shorter; dragged to its max, it covers that taller height instead.
+   */
+  const detailCover = (atMax: boolean) => {
+    if (!isMobile || !sheetHeights) return 0;
+    return Math.min(sheetHeights.fit, atMax ? sheetHeights.full : sheetHeights.mid);
+  };
+
+  /** Puts the pin in the middle of the map left visible above a sheet `inset` px tall. */
+  const detailFit = sheetHeights?.fit ?? 0;
+  const centerOnSheet = useCallback(
+    (sel: Selection, inset: number) => {
+      framed.current = { sel, inset, fit: detailFit };
+      mapRef.current?.easeTo({
+        center: pointOf(sel),
+        padding: { top: 0, left: 0, right: 0, bottom: inset },
+        duration: SHEET_MOVE_MS,
+        retainPadding: false,
+        essential: true,
+      });
+    },
+    [detailFit],
+  );
 
   const fit = (bounds: LngLatBoundsLike, inset: number) =>
     mapRef.current?.fitBounds(bounds, {
@@ -127,7 +153,7 @@ function AppShell() {
         mapRef.current?.flyTo({
           center: [coords.longitude, coords.latitude],
           zoom: LOCATE_ZOOM,
-          padding: padding(reveal()),
+          padding: padding(showingStop ? detailCover(rest === 'max') : routeInset(snap)),
           retainPadding: false,
           essential: true,
         });
@@ -152,6 +178,7 @@ function AppShell() {
   };
 
   const focus = (sel: Selection) => {
+    framed.current = null;
     if (isSameSelection(selection, sel)) {
       // Places stay at the current zoom; stops still fit the whole trip like the map pin toggle.
       if (sel.kind === 'place') {
@@ -161,31 +188,28 @@ function AppShell() {
       reset();
       return;
     }
+    const opening = !selection;
     select(sel);
     mapRef.current?.flyTo({
       center: pointOf(sel),
       zoom: sel.kind === 'town' ? 12 : sel.kind === 'place' ? 14 : 13,
-      padding: padding(reveal()),
+      padding: padding(detailCover(!opening && rest === 'max')),
       retainPadding: false,
       essential: true,
     });
   };
 
-  // Map taps select in place; on phones, pan only if the sheet would cover the selection.
+  // A pin opens the sheet to half the screen and centers in the map that leaves visible.
   const selectOnMap = (sel: Selection | null) => {
-    select(sel);
-    if (!isMobile) return;
     if (!sel) {
-      moveSheet('peek');
+      framed.current = null;
+      select(null);
+      if (isMobile) moveSheet('peek');
       return;
     }
-    const inset = reveal();
-    const map = mapRef.current;
-    if (!map) return;
-    const point = pointOf(sel);
-    if (map.project(point).y > map.getContainer().clientHeight - inset - REVEAL_MARGIN) {
-      map.easeTo({ center: point, padding: padding(inset), retainPadding: false });
-    }
+    setRest('mid');
+    select(sel);
+    if (isMobile && sheetHeights?.mid) centerOnSheet(sel, sheetHeights.mid);
   };
 
   // The scrubber scrolls the list to the day itself.
@@ -201,9 +225,29 @@ function AppShell() {
     if (sheetBody) sheetBody.scrollTop = showingStop ? 0 : listScroll.current;
   }, [showingStop, sheetBody]);
 
+  // A short detail never reaches half the screen; settle the pin in the gap that sheet actually leaves.
+  useLayoutEffect(() => {
+    const frame = framed.current;
+    if (!frame || !selection || !sheetHeights || rest !== 'mid') return;
+    if (!isSameSelection(frame.sel, selection) || sheetHeights.fit === frame.fit) return;
+    const inset = Math.min(sheetHeights.fit, sheetHeights.mid);
+    if (!inset || Math.abs(inset - frame.inset) < 2) return;
+    centerOnSheet(selection, inset);
+  }, [selection, sheetHeights, rest, centerOnSheet]);
+
+  // A pan is the user taking the camera; don't pull the pin back when the sheet finishes measuring.
   useEffect(() => {
-    if (showingStop && sheetHeights) lastFit.current = sheetHeights.fit;
-  }, [showingStop, sheetHeights]);
+    if (!isMobile || !sheetHeights) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const release = (event: { originalEvent?: Event }) => {
+      if (event.originalEvent) framed.current = null;
+    };
+    map.on('movestart', release);
+    return () => {
+      map.off('movestart', release);
+    };
+  }, [isMobile, sheetHeights]);
 
   return (
     <>
@@ -247,6 +291,8 @@ function AppShell() {
           onHeightsChange={setSheetHeights}
           bodyRef={setSheetBody}
           fit={showingStop}
+          rest={rest}
+          onRestChange={setRest}
           onDismiss={showingStop ? close : undefined}
           peekTo={mode === 'route' ? dayList : savedList}
         >
@@ -265,15 +311,7 @@ function AppShell() {
           ) : (
             <>
               <SavedHeader hidden={showingStop} />
-              {selection ? (
-                <PlaceBackBar
-                  index={sequence.findIndex((s) => isSameSelection(s, selection))}
-                  count={sequence.length}
-                  onBack={close}
-                />
-              ) : (
-                <SavedFilters filter={filter} onChange={changeFilter} />
-              )}
+              {selection ? <PlaceBackBar onBack={close} /> : <SavedFilters filter={filter} onChange={changeFilter} />}
             </>
           )}
           {selection && (
