@@ -5,7 +5,7 @@ import MapGL, { type MapMouseEvent, type MapRef, NavigationControl, ScaleControl
 import { isSameSelection, type Selection } from '../data/derive';
 import type { SavedPlace } from '../data/saved';
 import { useTrip } from '../data/TripContext';
-import { MAPBOX_TOKEN } from '../lib/config';
+import { getMapboxToken } from '../lib/config';
 import type { RouteResult } from '../lib/directions';
 import { InfoPopup } from './InfoPopup';
 import type { MapMode } from './ModeMenu';
@@ -70,7 +70,7 @@ export function TripMap({
     <div id="map" className="relative h-full flex-1" style={{ '--bottom-inset': `${bottomInset}px` } as CSSProperties}>
       <MapGL
         ref={mapRef}
-        mapboxAccessToken={MAPBOX_TOKEN}
+        mapboxAccessToken={getMapboxToken()}
         mapStyle="mapbox://styles/mapbox/outdoors-v12"
         initialViewState={{ bounds: tripBounds, fitBoundsOptions: { padding: initialPadding } }}
         interactiveLayerIds={INTERACTIVE_LAYERS[mode]}

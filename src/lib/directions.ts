@@ -1,7 +1,7 @@
 import type { LineString } from 'geojson';
 import type { Segment } from '../data/derive';
 import type { DayKey } from '../data/trip';
-import { MAPBOX_TOKEN } from './config';
+import { getMapboxToken } from './config';
 
 export interface RouteResult {
   day: DayKey;
@@ -14,7 +14,7 @@ export interface RouteResult {
 
 export async function fetchRoute(seg: Segment, signal?: AbortSignal): Promise<RouteResult> {
   const coords = seg.stops.map((s) => `${s.lng},${s.lat}`).join(';');
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${getMapboxToken()}`;
   try {
     const res = await fetch(url, { signal });
     const data = await res.json();
