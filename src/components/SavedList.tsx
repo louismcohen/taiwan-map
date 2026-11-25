@@ -174,6 +174,7 @@ export function SavedList({ ref, places, selection, onSelect, filter, onChange, 
             {inRegion.map((place) => (
               <Row
                 key={place.id}
+                selection={{ kind: 'place', place }}
                 active={isSameSelection(selection, {
                   kind: 'place',
                   place,

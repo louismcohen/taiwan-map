@@ -19,6 +19,7 @@ import { useTrip } from '../data/TripContext';
 import { fmtDistance } from '../lib/format';
 import { hoursForToday } from '../lib/hours';
 import { NoteBlock } from './PlaceStatus';
+import { VisitedToggle } from './VisitedToggle';
 
 interface Props {
   selection: Selection;
@@ -261,8 +262,13 @@ function Panel({ selection, sequence, onSelect, className, inert }: Props & { cl
           </div>
           <PagingButtons selection={selection} sequence={sequence} onSelect={onSelect} />
         </div>
-        <h3 className="mt-0.5 text-[17px] leading-[1.3] font-bold">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+        <div className="mt-0.5 flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[17px] leading-[1.3] font-bold">{title}</h3>
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+          </div>
+          <VisitedToggle selection={selection} />
+        </div>
       </div>
       {selection.kind === 'place' && body ? (
         <NoteBlock className="mb-3 text-[13px] whitespace-pre-line">{body}</NoteBlock>
