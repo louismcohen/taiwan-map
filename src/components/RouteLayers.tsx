@@ -27,21 +27,6 @@ const lineLayer: LayerProps = {
   paint: { ...linePaint, 'line-color': ['get', 'color'], 'line-width': 4.5 },
 };
 
-// Under saved places the route is only context, so it stays out of their way.
-const faintLayer: LayerProps = {
-  id: 'route-faint',
-  type: 'line',
-  slot: 'top',
-  layout: lineLayout,
-  paint: {
-    ...linePaint,
-    'line-color': '#6f6a61',
-    'line-width': 2.5,
-    'line-opacity': 0.5,
-    'line-dasharray': [1.5, 2],
-  },
-};
-
 // Gradient is animated imperatively by useRouteFlow; this is only the initial frame.
 const flowLayer: LayerProps = {
   id: FLOW_LAYER,
@@ -51,9 +36,9 @@ const flowLayer: LayerProps = {
   paint: { ...linePaint, 'line-width': 2.5, 'line-gradient': flowGradient(0) },
 };
 
-export function RouteLayers({ routes, faint = false }: { routes: RouteResult[]; faint?: boolean }) {
+export function RouteLayers({ routes }: { routes: RouteResult[] }) {
   const { days } = useTrip();
-  const animate = useRouteFlow(FLOW_LAYER) && !faint;
+  const animate = useRouteFlow(FLOW_LAYER);
 
   const data = useMemo<FeatureCollection<LineString>>(
     () => ({
@@ -67,13 +52,12 @@ export function RouteLayers({ routes, faint = false }: { routes: RouteResult[]; 
     [routes, days],
   );
 
-  // Source only cloneElement's direct children — a Fragment would drop `source` and
-  // the layers never paint (only the flow highlight would show).
+  // Source only cloneElement's direct children — a Fragment would drop `source`.
   return (
     <Source id="route" type="geojson" lineMetrics data={data}>
-      {faint ? <Layer {...faintLayer} /> : <Layer {...casingLayer} />}
-      {!faint && <Layer {...lineLayer} />}
-      {animate && <Layer {...flowLayer} />}
+      <Layer key="route-casing" {...casingLayer} />
+      <Layer key="route-line" {...lineLayer} />
+      {animate && <Layer key="route-flow" {...flowLayer} />}
     </Source>
   );
 }

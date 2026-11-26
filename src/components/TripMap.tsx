@@ -90,7 +90,7 @@ export function TripMap({
         onClick={handleClick}
       >
         {mode === 'route' && <StayZones />}
-        {routes && <RouteLayers routes={routes} faint={mode === 'saved'} />}
+        {mode === 'route' && routes && <RouteLayers routes={routes} />}
         {mode === 'route' ? (
           <StopMarkers
             selected={selection?.kind === 'stop' ? selection.stop : null}
