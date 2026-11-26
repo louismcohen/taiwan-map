@@ -19,10 +19,48 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-26T16:55:40.353Z"
+  "updatedAt": "2026-11-26T23:53:42.316Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "15180576623416025289",
+    "name": "老漿家OHsoymilk 台北林森店 - 24h不睡覺豆漿店",
+    "lat": 25.058389,
+    "lng": 121.525665,
+    "category": "other"
+  },
+  {
+    "id": "9216164612906257935",
+    "name": "World Soy Milk King (Shìjiè dòujiāng dàwáng)",
+    "lat": 25.056379,
+    "lng": 121.524689,
+    "address": "No. 27號, Lane 310, Linsen N Rd, Zhongshan Village, Zhongshan District, Taipei City, Taiwan 10491",
+    "category": "other"
+  },
+  {
+    "id": "17232148673440171155",
+    "name": "Sihai Soy Milk",
+    "lat": 25.050362,
+    "lng": 121.519844,
+    "category": "other"
+  },
+  {
+    "id": "8308624403495307837",
+    "name": "4+ Break Breakfast 小倆口早餐",
+    "lat": 25.048184,
+    "lng": 121.533173,
+    "address": "No. 53號, SongJiang Rd, Zhuyuan Village, Zhongshan District, Taipei City, Taiwan 10491",
+    "category": "other"
+  },
+  {
+    "id": "17422499956913495153",
+    "name": "Huashan 1914 Creative Park",
+    "lat": 25.04407,
+    "lng": 121.529358,
+    "address": "No. 1號, Section 1, Bade Rd, Meihua Village, Zhongzheng District, Taipei City, Taiwan 100",
+    "category": "nature"
+  },
   {
     "id": "17252654850142056622",
     "name": "阿娥豆漿豆花",
