@@ -1,5 +1,5 @@
 import { type HourPeriod, isPlaceDetails, PLACE_DETAILS } from './placeDetails';
-import { CATEGORIES, type Category, type Kind } from './placeKinds';
+import { CATEGORIES, CATEGORY_LABELS, type Category, type Kind } from './placeKinds';
 import { PLACE_OVERRIDES } from './placeOverrides';
 import { SAVED_PLACES, type SyncedPlace } from './places';
 import type { Stop } from './trip';
@@ -42,9 +42,10 @@ export interface SavedPlace {
 export interface SavedFilter {
   category: Category | 'all';
   region: Region | 'all';
+  query: string;
 }
 
-export const NO_FILTER: SavedFilter = { category: 'all', region: 'all' };
+export const NO_FILTER: SavedFilter = { category: 'all', region: 'all', query: '' };
 
 function regionOf({ lat, lng }: { lat: number; lng: number }): Region {
   if (lat > 24.6) return 'taipei';
@@ -122,9 +123,29 @@ export function savedPlacesFor(stops: Stop[]) {
   return { places, onRoute };
 }
 
-export const matchesFilter = (place: SavedPlace, filter: SavedFilter) =>
-  (filter.category === 'all' || place.category === filter.category) &&
-  (filter.region === 'all' || place.region === filter.region);
+function searchHaystack(place: SavedPlace) {
+  const { label, short } = CATEGORY_LABELS[place.category];
+  return [
+    place.name,
+    place.savedName,
+    place.note,
+    place.editorial,
+    place.reviewSummary,
+    label,
+    short,
+    REGION_LABELS[place.region],
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+}
+
+export const matchesFilter = (place: SavedPlace, filter: SavedFilter) => {
+  if (filter.category !== 'all' && place.category !== filter.category) return false;
+  if (filter.region !== 'all' && place.region !== filter.region) return false;
+  const q = filter.query.trim().toLowerCase();
+  return !q || searchHaystack(place).includes(q);
+};
 
 export const savedPlaceUrl = (place: SavedPlace) => `https://maps.google.com/?cid=${place.id}`;
 

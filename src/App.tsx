@@ -3,8 +3,16 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { MapRef } from 'react-map-gl/mapbox';
 import { BottomSheet, type DetailRest, type SheetHeights, type Snap } from './components/BottomSheet';
 import { DayScrubber, type ScrubberFollow } from './components/DayScrubber';
-import { FitMapButton, LOCATE_ZOOM, LocateMapButton, MapFabStack, type MapMode, ModeMenu } from './components/ModeMenu';
-import { PlaceBackBar, SavedFilters, SavedHeader, SavedList } from './components/SavedList';
+import {
+  FitMapButton,
+  LOCATE_ZOOM,
+  LocateMapButton,
+  MapChrome,
+  MapFabStack,
+  type MapMode,
+  ModeMenu,
+} from './components/ModeMenu';
+import { PlaceBackBar, SavedFilters, SavedHeader, SavedList, SavedSearch } from './components/SavedList';
 import { SelectionDetail } from './components/SelectionDetail';
 import { DayList, Sidebar, TripHeader } from './components/Sidebar';
 import { TripMap } from './components/TripMap';
@@ -279,11 +287,14 @@ function AppShell() {
           initialPadding={padding(routeInset('peek'), TRIP_PADDING)}
           userLocation={userLocation}
         >
-          <ModeMenu mode={mode} onChange={changeMode} />
-          <MapFabStack>
-            <FitMapButton onClick={fitAll} />
-            <LocateMapButton onClick={goToMe} busy={locating} />
-          </MapFabStack>
+          <MapChrome>
+            <ModeMenu mode={mode} onChange={changeMode} />
+            {mode === 'saved' && <SavedSearch filter={filter} onChange={changeFilter} />}
+            <MapFabStack>
+              <FitMapButton onClick={fitAll} />
+              <LocateMapButton onClick={goToMe} busy={locating} />
+            </MapFabStack>
+          </MapChrome>
         </TripMap>
       )}
       {isMobile && (

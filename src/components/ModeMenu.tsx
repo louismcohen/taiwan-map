@@ -18,8 +18,17 @@ const ICONS: Record<MapMode, IconSvgElement> = {
 };
 
 /** Shared chrome for the round map FABs (mode menu + fit / locate). */
-const MAP_FAB =
+export const MAP_FAB =
   'grid size-[38px] cursor-pointer place-items-center rounded-full bg-white text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)] transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 disabled:pointer-events-none disabled:opacity-50';
+
+/** Top map overlay: mode menu, optional search, fit/locate stack. */
+export function MapChrome({ children }: { children: ReactNode }) {
+  return (
+    <div className="pointer-events-none absolute top-[calc(env(safe-area-inset-top,0px)+10px)] right-2.5 left-2.5 z-10 flex items-start gap-2">
+      {children}
+    </div>
+  );
+}
 
 const synced = new Date(SAVED_LIST.updatedAt).toLocaleDateString(undefined, {
   month: 'short',
@@ -48,7 +57,7 @@ export function ModeMenu({ mode, onChange }: Props) {
     <Menu.Root modal={false}>
       <Menu.Trigger
         aria-label={`Map: ${options[mode].title}`}
-        className={`absolute top-[calc(env(safe-area-inset-top,0px)+10px)] left-2.5 z-10 ${MAP_FAB} data-[popup-open]:ring-2 data-[popup-open]:ring-ring/40`}
+        className={`pointer-events-auto shrink-0 ${MAP_FAB} data-[popup-open]:ring-2 data-[popup-open]:ring-ring/40`}
       >
         <HugeiconsIcon icon={ICONS[mode]} size={19} strokeWidth={2} />
       </Menu.Trigger>
@@ -88,11 +97,7 @@ export function ModeMenu({ mode, onChange }: Props) {
 
 /** Stack of top-right map actions (fit, locate, …). */
 export function MapFabStack({ children }: { children: ReactNode }) {
-  return (
-    <div className="absolute top-[calc(env(safe-area-inset-top,0px)+10px)] right-2.5 z-10 flex flex-col gap-2">
-      {children}
-    </div>
-  );
+  return <div className="pointer-events-auto ml-auto flex shrink-0 flex-col gap-2">{children}</div>;
 }
 
 /** Fits the map to the current mode's pins / trip. */

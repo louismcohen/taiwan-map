@@ -1,4 +1,4 @@
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon, Cancel01Icon, Search01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { CSSProperties, ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,9 @@ import { useTrip } from '../data/TripContext';
 import { CATEGORY_STYLE, placeColor, placeIcon } from '../lib/placeIcon';
 import { overline, Row } from './DaySection';
 import { PlaceStatusMeta } from './PlaceStatus';
+
+/** SavedFilters sticky height: py-2.5 + 2×h-8 + gap-1.5. */
+const FILTERS_STICKY_TOP = 'top-[5.625rem]';
 
 export function SavedHeader({ hidden }: { hidden?: boolean }) {
   const { saved } = useTrip();
@@ -31,6 +34,50 @@ export function SavedHeader({ hidden }: { hidden?: boolean }) {
 interface FilterProps {
   filter: SavedFilter;
   onChange: (filter: SavedFilter) => void;
+}
+
+/** Map-top search between the mode menu and fit/locate FABs. */
+export function SavedSearch({ filter, onChange }: FilterProps) {
+  const query = filter.query;
+  return (
+    <search className="pointer-events-auto min-w-0 flex-1 min-[761px]:max-w-[240px] min-[761px]:flex-none">
+      <label htmlFor="saved-search" className="sr-only">
+        Search saved places
+      </label>
+      <div className="relative flex h-[38px] items-center">
+        <HugeiconsIcon
+          icon={Search01Icon}
+          size={16}
+          strokeWidth={2}
+          className="pointer-events-none absolute left-2.5 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          id="saved-search"
+          type="search"
+          value={query}
+          onChange={(e) => onChange({ ...filter, query: e.target.value })}
+          placeholder="Search places"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          autoComplete="off"
+          enterKeyHint="search"
+          className="h-full w-full rounded-full bg-white py-0 pr-9 pl-9 text-[13px] font-medium text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)] outline-none ring-0 transition-[box-shadow] duration-150 ease-out placeholder:font-normal placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => onChange({ ...filter, query: '' })}
+            className="absolute right-1.5 grid size-6 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </search>
+  );
 }
 
 export function SavedFilters({ filter, onChange }: FilterProps) {
@@ -164,8 +211,8 @@ export function SavedList({ ref, places, selection, onSelect, filter, onChange, 
               <h2
                 className={cn(
                   overline,
-                  // Sit just under SavedFilters (py-2.5 + 2×h-8 + gap-1.5 = 5.625rem).
-                  'sticky top-[5.625rem] z-[9] -mx-[22px] mb-1 bg-background px-[22px] py-1.5 font-bold tracking-[0.06em] in-data-[slot=drawer-popup]:-mx-4 in-data-[slot=drawer-popup]:px-4',
+                  // Sit just under SavedFilters (see FILTERS_STICKY_TOP).
+                  `sticky ${FILTERS_STICKY_TOP} z-[9] -mx-[22px] mb-1 bg-background px-[22px] py-1.5 font-bold tracking-[0.06em] in-data-[slot=drawer-popup]:-mx-4 in-data-[slot=drawer-popup]:px-4`,
                 )}
               >
                 {REGION_LABELS[region]} · {inRegion.length}
