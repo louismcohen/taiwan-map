@@ -19,10 +19,75 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-25T05:27:39.730Z"
+  "updatedAt": "2026-11-26T16:55:40.353Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "17252654850142056622",
+    "name": "阿娥豆漿豆花",
+    "lat": 23.476761,
+    "lng": 120.450723,
+    "note": "soy milk and tofu pudding dessert",
+    "address": "No. 233號, Yanping St, Guogou Village, East District, Chiayi City, Taiwan 600",
+    "category": "other"
+  },
+  {
+    "id": "5279492911023272241",
+    "name": "LIU LI CHANG Turkey Rice",
+    "lat": 23.478257,
+    "lng": 120.4502,
+    "address": "No. 414號, Guangcai St, Zhongyang Village, East District, Chiayi City, Taiwan 600",
+    "category": "other"
+  },
+  {
+    "id": "8763053439228708290",
+    "name": "金皮雕 不安於室工作室民宿",
+    "lat": 23.46564,
+    "lng": 120.71311,
+    "address": "605, Taiwan, Chiayi County, Alishan Township, Leye Village, 2鄰72號附1",
+    "category": "other"
+  },
+  {
+    "id": "15259801954093709868",
+    "name": "SunnyHills — Taipei 101 Shopping Center To Go",
+    "lat": 25.033736,
+    "lng": 121.564271,
+    "note": "pineapple cake 鳳梨酥 / Fèng lí sū",
+    "address": "110, Taiwan, Taipei City, Xinyi District, Xicun Village, Section 5, Xinyi Rd, 7號B1",
+    "category": "shopping"
+  },
+  {
+    "id": "4730455200188102284",
+    "name": "Xiao Lin Seafood Restaurant",
+    "lat": 25.033995,
+    "lng": 121.557214,
+    "note": "traditional stir fry seafood restaurant",
+    "category": "food"
+  },
+  {
+    "id": "14423639308365593052",
+    "name": "Songshan Cultural and Creative Park",
+    "lat": 25.043837,
+    "lng": 121.560638,
+    "category": "nature"
+  },
+  {
+    "id": "2046211381744923936",
+    "name": "Xinfu Market",
+    "lat": 25.035768,
+    "lng": 121.501922,
+    "note": "Traditional wet market",
+    "category": "shopping"
+  },
+  {
+    "id": "7364862798033183003",
+    "name": "Addiction Aquatic Development",
+    "lat": 25.066708,
+    "lng": 121.537006,
+    "note": "Seafood market and really good sushi",
+    "category": "other"
+  },
   {
     "id": "10164448225396696898",
     "name": "Takeshi Kaneshiro Tree",
