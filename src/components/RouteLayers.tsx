@@ -7,36 +7,48 @@ import type { RouteResult } from '../lib/directions';
 import { flowGradient } from '../lib/flowGradient';
 
 const FLOW_LAYER = 'route-flow';
+// Mapbox Standard places undraped custom lines in `top` so they stay above roads/buildings.
 const lineLayout = { 'line-join': 'round', 'line-cap': 'round' } as const;
+const linePaint = { 'line-emissive-strength': 0.8 } as const;
 
 const casingLayer: LayerProps = {
   id: 'route-casing',
   type: 'line',
+  slot: 'top',
   layout: lineLayout,
-  paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 },
+  paint: { ...linePaint, 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 },
 };
 
 const lineLayer: LayerProps = {
   id: 'route-line',
   type: 'line',
+  slot: 'top',
   layout: lineLayout,
-  paint: { 'line-color': ['get', 'color'], 'line-width': 4.5 },
+  paint: { ...linePaint, 'line-color': ['get', 'color'], 'line-width': 4.5 },
 };
 
 // Under saved places the route is only context, so it stays out of their way.
 const faintLayer: LayerProps = {
   id: 'route-faint',
   type: 'line',
+  slot: 'top',
   layout: lineLayout,
-  paint: { 'line-color': '#6f6a61', 'line-width': 2.5, 'line-opacity': 0.5, 'line-dasharray': [1.5, 2] },
+  paint: {
+    ...linePaint,
+    'line-color': '#6f6a61',
+    'line-width': 2.5,
+    'line-opacity': 0.5,
+    'line-dasharray': [1.5, 2],
+  },
 };
 
 // Gradient is animated imperatively by useRouteFlow; this is only the initial frame.
 const flowLayer: LayerProps = {
   id: FLOW_LAYER,
   type: 'line',
+  slot: 'top',
   layout: lineLayout,
-  paint: { 'line-width': 2.5, 'line-gradient': flowGradient(0) },
+  paint: { ...linePaint, 'line-width': 2.5, 'line-gradient': flowGradient(0) },
 };
 
 export function RouteLayers({ routes, faint = false }: { routes: RouteResult[]; faint?: boolean }) {
@@ -55,16 +67,12 @@ export function RouteLayers({ routes, faint = false }: { routes: RouteResult[]; 
     [routes, days],
   );
 
+  // Source only cloneElement's direct children — a Fragment would drop `source` and
+  // the layers never paint (only the flow highlight would show).
   return (
     <Source id="route" type="geojson" lineMetrics data={data}>
-      {faint ? (
-        <Layer {...faintLayer} />
-      ) : (
-        <>
-          <Layer {...casingLayer} />
-          <Layer {...lineLayer} />
-        </>
-      )}
+      {faint ? <Layer {...faintLayer} /> : <Layer {...casingLayer} />}
+      {!faint && <Layer {...lineLayer} />}
       {animate && <Layer {...flowLayer} />}
     </Source>
   );
