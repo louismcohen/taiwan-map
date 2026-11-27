@@ -103,7 +103,7 @@ interface RowProps {
   label: string;
   labelIcon?: IconSvgElement;
   title: string;
-  /** Status line under the title (e.g. Open · Cash only · hours). */
+  /** Status line under the title (e.g. Open · Closes 9 PM). */
   status?: ReactNode;
   /** Your Google Maps note — shown in the tinted note panel. */
   note?: string;

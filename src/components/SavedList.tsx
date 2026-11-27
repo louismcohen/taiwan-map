@@ -1,12 +1,30 @@
-import { ArrowLeft01Icon, Cancel01Icon, Search01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { CSSProperties, ReactNode, Ref } from 'react';
+import {
+  ArrowLeft01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
+  DoorClosedIcon,
+  DoorOpenIcon,
+  Search01Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { type CSSProperties, type ReactNode, type Ref, useEffect, useId, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { isSameSelection, type Selection } from '../data/derive';
 import { CATEGORIES, CATEGORY_LABELS } from '../data/placeKinds';
 import { SAVED_LIST } from '../data/places';
-import { matchesFilter, NO_FILTER, REGION_LABELS, REGIONS, type SavedFilter, type SavedPlace } from '../data/saved';
+import {
+  cycleTriFilter,
+  matchesFilter,
+  NO_FILTER,
+  REGION_LABELS,
+  REGIONS,
+  type SavedFilter,
+  type SavedPlace,
+  type TriFilter,
+} from '../data/saved';
 import { useTrip } from '../data/TripContext';
+import { usePlaceVisited } from '../data/visited';
 import { CATEGORY_STYLE, placeColor, placeIcon } from '../lib/placeIcon';
 import { overline, Row } from './DaySection';
 import { PlaceStatusMeta } from './PlaceStatus';
@@ -36,11 +54,44 @@ interface FilterProps {
   onChange: (filter: SavedFilter) => void;
 }
 
+const FIELD_SHADOW = 'shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)]';
+
 /** Map-top search between the mode menu and fit/locate FABs. */
 export function SavedSearch({ filter, onChange }: FilterProps) {
   const query = filter.query;
+  const rootRef = useRef<HTMLElement>(null);
+  const [open, setOpen] = useState(false);
+  const statusId = useId();
+  const status = filterStatus(filter);
+  const trailing = (filter.open === 'off' ? 0 : 1) + (filter.visited === 'off' ? 0 : 1) + (query ? 1 : 0);
+
+  // Stay open across clicks on the filter buttons (those blur the field). A map press or Escape closes it.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      if (rootRef.current?.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).blur();
+      }
+      event.stopPropagation();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [open]);
+
   return (
-    <search className="pointer-events-auto min-w-0 flex-1 min-[761px]:max-w-[240px] min-[761px]:flex-none">
+    <search
+      ref={rootRef}
+      className="pointer-events-auto relative min-w-0 flex-1 min-[761px]:max-w-[240px] min-[761px]:flex-none"
+    >
       <label htmlFor="saved-search" className="sr-only">
         Search saved places
       </label>
@@ -57,32 +108,144 @@ export function SavedSearch({ filter, onChange }: FilterProps) {
           type="search"
           value={query}
           onChange={(e) => onChange({ ...filter, query: e.target.value })}
+          onFocus={() => setOpen(true)}
           placeholder="Search places"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
           autoComplete="off"
           enterKeyHint="search"
-          className="h-full w-full rounded-full bg-white py-0 pr-9 pl-9 text-[13px] font-medium text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.18)] outline-none ring-0 transition-[box-shadow] duration-150 ease-out placeholder:font-normal placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
+          aria-describedby={status ? statusId : undefined}
+          style={{ paddingRight: trailing === 0 ? 12 : 8 + trailing * 26 }}
+          className={cn(
+            'h-full w-full rounded-full bg-white py-0 pl-9 text-[13px] font-medium text-foreground outline-none ring-0 transition-[box-shadow] duration-150 ease-out placeholder:font-normal placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden',
+            FIELD_SHADOW,
+            open && 'ring-2 ring-ring',
+          )}
         />
-        {query && (
-          <button
-            type="button"
-            aria-label="Clear search"
-            onClick={() => onChange({ ...filter, query: '' })}
-            className="absolute right-1.5 grid size-6 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} aria-hidden="true" />
-          </button>
-        )}
+        <div className="absolute right-1.5 flex items-center">
+          {filter.open !== 'off' && (
+            <FilterMark
+              icon={filter.open === 'no' ? DoorClosedIcon : DoorOpenIcon}
+              className={filter.open === 'no' ? 'text-[#9a2f3f]' : 'text-[#2f6b3c]'}
+            />
+          )}
+          {filter.visited !== 'off' && (
+            <FilterMark
+              icon={filter.visited === 'no' ? CheckmarkCircle01Icon : Tick02Icon}
+              className={filter.visited === 'no' ? 'text-foreground' : 'text-[#2f6b3c]'}
+            />
+          )}
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onChange({ ...filter, query: '' })}
+              className="grid size-6 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
+      {status && (
+        <p id={statusId} className="sr-only">
+          Filtered by {status}
+        </p>
+      )}
+      <fieldset
+        inert={!open}
+        aria-hidden={!open}
+        className={cn(
+          'absolute top-full left-0 z-20 mt-2 flex w-max min-w-0 gap-1.5 border-0 p-0 transition-[opacity,translate] duration-(--duration-filter) ease-(--ease-out) motion-reduce:transition-none max-[380px]:right-0 max-[380px]:left-auto',
+          open ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0',
+        )}
+      >
+        <legend className="sr-only">Place filters</legend>
+        <TriFilterButton
+          label={filter.open === 'no' ? 'Closed now' : 'Open now'}
+          mode={filter.open}
+          icon={filter.open === 'no' ? DoorClosedIcon : DoorOpenIcon}
+          tone={filter.open === 'no' ? 'closed' : 'open'}
+          onClick={() => onChange({ ...filter, open: cycleTriFilter(filter.open) })}
+        />
+        <TriFilterButton
+          label={filter.visited === 'no' ? 'Not visited' : 'Visited'}
+          mode={filter.visited}
+          icon={filter.visited === 'no' ? CheckmarkCircle01Icon : Tick02Icon}
+          tone="visited"
+          onClick={() => onChange({ ...filter, visited: cycleTriFilter(filter.visited) })}
+        />
+      </fieldset>
     </search>
+  );
+}
+
+function filterStatus(filter: SavedFilter) {
+  const parts: string[] = [];
+  if (filter.open === 'yes') parts.push('open now');
+  if (filter.open === 'no') parts.push('closed now');
+  if (filter.visited === 'yes') parts.push('visited');
+  if (filter.visited === 'no') parts.push('not visited');
+  return parts.join(', ');
+}
+
+function FilterMark({ icon, className }: { icon: IconSvgElement; className: string }) {
+  return (
+    <span className={cn('grid size-6 place-items-center', className)} aria-hidden="true">
+      <HugeiconsIcon icon={icon} size={15} strokeWidth={2} />
+    </span>
+  );
+}
+
+function TriFilterButton({
+  label,
+  mode,
+  icon,
+  tone,
+  onClick,
+}: {
+  label: string;
+  mode: TriFilter;
+  icon: IconSvgElement;
+  tone: 'open' | 'closed' | 'visited';
+  onClick: () => void;
+}) {
+  const pressed = mode !== 'off';
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[13px] font-semibold whitespace-nowrap transition-[color,background-color] duration-(--duration-filter) ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:duration-100',
+        FIELD_SHADOW,
+        !pressed && 'bg-white text-foreground hover:bg-accent',
+        pressed &&
+          tone === 'open' &&
+          'bg-[color-mix(in_srgb,#3d8b4f_18%,white)] text-[#2f6b3c] hover:bg-[color-mix(in_srgb,#3d8b4f_26%,white)]',
+        pressed &&
+          tone === 'closed' &&
+          'bg-[color-mix(in_srgb,#c73e52_16%,white)] text-[#9a2f3f] hover:bg-[color-mix(in_srgb,#c73e52_24%,white)]',
+        pressed &&
+          tone === 'visited' &&
+          mode === 'yes' &&
+          'bg-[color-mix(in_srgb,#3d8b4f_18%,white)] text-[#2f6b3c] hover:bg-[color-mix(in_srgb,#3d8b4f_26%,white)]',
+        pressed && tone === 'visited' && mode === 'no' && 'bg-foreground text-white hover:bg-foreground',
+      )}
+    >
+      <HugeiconsIcon icon={icon} size={14} strokeWidth={2} className="shrink-0" aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 
 export function SavedFilters({ filter, onChange }: FilterProps) {
   const { saved } = useTrip();
-  const count = (f: SavedFilter) => saved.filter((p) => matchesFilter(p, f)).length;
+  const isVisitedPlace = usePlaceVisited();
+  const count = (f: SavedFilter) => saved.filter((p) => matchesFilter(p, f, isVisitedPlace)).length;
   const categories = CATEGORIES.filter(
     (category) => category === filter.category || count({ ...filter, category }) > 0,
   );

@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { SavedPlace } from '../data/saved';
-import { isOpen24Hours, isOpenNow, todayHoursShort, untilCloseLabel } from '../lib/hours';
+import { closesAtLabel, isOpen24Hours, isOpenNow, opensAtLabel, untilCloseLabel } from '../lib/hours';
 
 /** Your Google Maps note in a quiet panel so it doesn't blend into chrome text. */
 export function NoteBlock({
@@ -34,12 +34,17 @@ function placeOpenState(place: SavedPlace) {
 }
 
 /**
- * Readable status line for list rows (prototype A/B): Open/Closed · Cash only · hours.
- * Skips hours noise for 24h places.
+ * List row: Open · Closes 9 PM, or Closed · Opens 11 AM (tomorrow / Fri when it isn't today).
+ * 24h places stay quiet — there is no next change to show.
  */
 export function PlaceStatusMeta({ place, className }: { place: SavedPlace; className?: string }) {
   const open = placeOpenState(place);
-  const hours = open !== undefined && place.hours?.length ? todayHoursShort(place.hours) : undefined;
+  const when =
+    place.hourPeriods && open === true
+      ? closesAtLabel(place.hourPeriods)
+      : place.hourPeriods && open === false
+        ? opensAtLabel(place.hourPeriods)
+        : undefined;
 
   const parts: { key: string; node: ReactNode }[] = [];
   if (open === true) {
@@ -53,13 +58,13 @@ export function PlaceStatusMeta({ place, className }: { place: SavedPlace; class
       node: <span className="font-semibold text-[#9a2f3f]">Closed</span>,
     });
   }
+  if (when) parts.push({ key: 'when', node: when });
   if (place.cashOnly) {
     parts.push({
       key: 'cash',
       node: <span className="font-semibold text-[#a35a10]">Cash only</span>,
     });
   }
-  if (open === true && hours) parts.push({ key: 'hours', node: hours });
 
   if (!parts.length) return null;
 

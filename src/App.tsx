@@ -21,7 +21,7 @@ import { isSameSelection, pointOf, resolveSelection, type Selection, TRIP_PADDIN
 import { matchesFilter, NO_FILTER, type SavedFilter } from './data/saved';
 import { TripProvider, useTrip } from './data/TripContext';
 import type { DayKey } from './data/trip';
-import { VisitedProvider } from './data/visited';
+import { usePlaceVisited, VisitedProvider } from './data/visited';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useRoutes } from './hooks/useRoutes';
 import { boundsOf } from './lib/geo';
@@ -68,7 +68,11 @@ function AppShell() {
   /** On phones, a stop replaces the list below the day scrubber, and the sheet shrinks to fit them. */
   const showingStop = !!selection;
 
-  const places = useMemo(() => trip.saved.filter((p) => matchesFilter(p, filter)), [trip.saved, filter]);
+  const isVisitedPlace = usePlaceVisited();
+  const places = useMemo(
+    () => trip.saved.filter((p) => matchesFilter(p, filter, isVisitedPlace)),
+    [trip.saved, filter, isVisitedPlace],
+  );
   /** What "show all" frames: the scooter trip, or the pins visible in saved mode. */
   const overviewBounds = mode === 'saved' && places.length ? boundsOf(places) : trip.tripBounds;
   const sequence = useMemo<Selection[]>(
@@ -183,7 +187,7 @@ function AppShell() {
 
   const changeFilter = (f: SavedFilter) => {
     setFilter(f);
-    if (selection?.kind === 'place' && !matchesFilter(selection.place, f)) select(null);
+    if (selection?.kind === 'place' && !matchesFilter(selection.place, f, isVisitedPlace)) select(null);
   };
 
   const focus = (sel: Selection) => {

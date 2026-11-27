@@ -74,20 +74,63 @@ export function openPeriod(periods: HourPeriod[], now = new Date(), timeZone = P
   return undefined;
 }
 
-const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const WEEK_MIN = 7 * 24 * 60;
+const DAY_MIN = 24 * 60;
 
-/** e.g. "Until 2:00 PM" for the current open period; undefined if closed or 24h-open. */
+const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+const hourFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric' });
+
+/** On-the-hour times drop the minutes ("9 PM"); otherwise "4:30 PM". */
+function formatWallTime(hour: number, minute: number) {
+  const date = new Date(2000, 0, 1, hour, minute);
+  return minute === 0 ? hourFmt.format(date) : timeFmt.format(date);
+}
+
+/** e.g. "Until 9 PM" for the current open period; undefined if closed or 24h-open. */
 export function untilCloseLabel(periods: HourPeriod[], now = new Date(), timeZone = PLACE_TZ) {
   const period = openPeriod(periods, now, timeZone);
   if (!period?.close) return undefined;
-  // Format wall-clock hour/minute only — the Date's calendar day is irrelevant.
-  return `Until ${timeFmt.format(new Date(2000, 0, 1, period.close.hour, period.close.minute))}`;
+  return `Until ${formatWallTime(period.close.hour, period.close.minute)}`;
 }
 
-/** Today's hours text without the weekday prefix, for list row fallbacks. */
-export function todayHoursShort(weekdayDescriptions: string[], now = new Date(), timeZone = PLACE_TZ) {
-  const line = hoursForToday(weekdayDescriptions, now, timeZone);
-  if (!line) return undefined;
-  const i = line.indexOf(':');
-  return i >= 0 ? line.slice(i + 1).trim() : line;
+/** "Closes 9 PM" while `now` falls in an open period that has a close. */
+export function closesAtLabel(periods: HourPeriod[], now = new Date(), timeZone = PLACE_TZ) {
+  const period = openPeriod(periods, now, timeZone);
+  if (!period?.close) return undefined;
+  return `Closes ${formatWallTime(period.close.hour, period.close.minute)}`;
+}
+
+/** Soonest opening strictly after `now`, wrapping into the following week. */
+function nextOpening(periods: HourPeriod[], now: Date, timeZone: string) {
+  const clock = wallClock(now, timeZone);
+  if (clock.day < 0 || Number.isNaN(clock.hour) || Number.isNaN(clock.minute) || !periods.length) return undefined;
+  const nowMin = minutesSinceSunday(clock);
+  let bestAt = Infinity;
+  let best: HourPeriod['open'] | undefined;
+  for (const period of periods) {
+    let at = minutesSinceSunday(period.open);
+    if (at <= nowMin) at += WEEK_MIN;
+    if (at < bestAt) {
+      bestAt = at;
+      best = period.open;
+    }
+  }
+  if (!best) return undefined;
+  return { point: best, at: bestAt, nowMin, today: clock.day };
+}
+
+/**
+ * When the place is closed: "Opens 4:30 PM" later today, "Opens 11 AM tomorrow",
+ * or "Opens 11 AM Fri" further out. Weekday is the place's, not the viewer's.
+ */
+export function opensAtLabel(periods: HourPeriod[], now = new Date(), timeZone = PLACE_TZ) {
+  const next = nextOpening(periods, now, timeZone);
+  if (!next) return undefined;
+  const time = formatWallTime(next.point.hour, next.point.minute);
+  const { day } = next.point;
+  if (day === next.today && next.at - next.nowMin < DAY_MIN) return `Opens ${time}`;
+  if (day === (next.today + 1) % 7) return `Opens ${time} tomorrow`;
+  if (day === next.today) return `Opens ${time} next ${WEEKDAY_SHORT[day]}`;
+  return `Opens ${time} ${WEEKDAY_SHORT[day]}`;
 }

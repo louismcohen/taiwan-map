@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import type { Selection } from './derive';
+import type { SavedPlace } from './saved';
 
 const STORAGE_KEY = 'taiwan-map:visited';
 
@@ -62,4 +63,10 @@ export function useVisited(): VisitedContextValue {
   const visited = useContext(VisitedContext);
   if (!visited) throw new Error('useVisited must be used inside VisitedProvider');
   return visited;
+}
+
+/** Whether a saved place is marked visited. Stable until the visited set changes. */
+export function usePlaceVisited() {
+  const { has } = useVisited();
+  return useCallback((place: SavedPlace) => has({ kind: 'place', place }), [has]);
 }

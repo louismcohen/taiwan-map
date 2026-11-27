@@ -1,3 +1,4 @@
+import { isOpenNow } from '../lib/hours';
 import { type HourPeriod, isPlaceDetails, PLACE_DETAILS } from './placeDetails';
 import { CATEGORIES, CATEGORY_LABELS, type Category, type Kind } from './placeKinds';
 import { PLACE_OVERRIDES } from './placeOverrides';
@@ -39,13 +40,30 @@ export interface SavedPlace {
   photos?: string[];
 }
 
+/** Off, then matching, then inverted. Same cycle as the search filter buttons. */
+export type TriFilter = 'off' | 'yes' | 'no';
+
+export function cycleTriFilter(mode: TriFilter): TriFilter {
+  if (mode === 'off') return 'yes';
+  if (mode === 'yes') return 'no';
+  return 'off';
+}
+
 export interface SavedFilter {
   category: Category | 'all';
   region: Region | 'all';
   query: string;
+  open: TriFilter;
+  visited: TriFilter;
 }
 
-export const NO_FILTER: SavedFilter = { category: 'all', region: 'all', query: '' };
+export const NO_FILTER: SavedFilter = {
+  category: 'all',
+  region: 'all',
+  query: '',
+  open: 'off',
+  visited: 'off',
+};
 
 function regionOf({ lat, lng }: { lat: number; lng: number }): Region {
   if (lat > 24.6) return 'taipei';
@@ -140,9 +158,30 @@ function searchHaystack(place: SavedPlace) {
     .toLowerCase();
 }
 
-export const matchesFilter = (place: SavedPlace, filter: SavedFilter) => {
+/**
+ * Open for the search filter. Places with no hours stay in "open now", matching a missing
+ * hours feed rather than marking them closed. Explicit periods, including 24-hour, use Taipei time.
+ */
+function listedOpen(place: SavedPlace) {
+  if (!place.hourPeriods?.length) return true;
+  return isOpenNow(place.hourPeriods);
+}
+
+function passesTri(mode: TriFilter, value: boolean) {
+  if (mode === 'yes') return value;
+  if (mode === 'no') return !value;
+  return true;
+}
+
+export const matchesFilter = (
+  place: SavedPlace,
+  filter: SavedFilter,
+  isVisited: (place: SavedPlace) => boolean = () => false,
+) => {
   if (filter.category !== 'all' && place.category !== filter.category) return false;
   if (filter.region !== 'all' && place.region !== filter.region) return false;
+  if (!passesTri(filter.open, listedOpen(place))) return false;
+  if (!passesTri(filter.visited, isVisited(place))) return false;
   const q = filter.query.trim().toLowerCase();
   return !q || searchHaystack(place).includes(q);
 };
