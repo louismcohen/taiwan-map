@@ -19,10 +19,26 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-26T23:53:42.316Z"
+  "updatedAt": "2026-11-27T01:44:45.600Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "713689805073904645",
+    "name": "Farm Dream Estates",
+    "lat": 23.801841,
+    "lng": 121.463529,
+    "address": "No. 20號, Yongfu St, Linrong Village, Fenglin Township, Hualien County, Taiwan 975",
+    "category": "other"
+  },
+  {
+    "id": "17493896823329799769",
+    "name": "Rongjin Gorgeous Time",
+    "lat": 25.030529,
+    "lng": 121.524837,
+    "address": "No. 167號, Jinhua St, Jintai Village, Da’an District, Taipei City, Taiwan 106",
+    "category": "nature"
+  },
   {
     "id": "15180576623416025289",
     "name": "老漿家OHsoymilk 台北林森店 - 24h不睡覺豆漿店",
