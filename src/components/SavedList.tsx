@@ -118,7 +118,8 @@ export function SavedSearch({ filter, onChange }: FilterProps) {
           aria-describedby={status ? statusId : undefined}
           style={{ paddingRight: trailing === 0 ? 12 : 8 + trailing * 26 }}
           className={cn(
-            'h-full w-full rounded-full bg-white py-0 pl-9 text-[13px] font-medium text-foreground outline-none ring-0 transition-[box-shadow] duration-150 ease-out placeholder:font-normal placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden',
+            // 16px minimum. iOS zooms the page when a focused field is smaller.
+            'h-full w-full rounded-full bg-white py-0 pl-9 text-base font-medium text-foreground outline-none ring-0 transition-[box-shadow] duration-150 ease-out placeholder:font-normal placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden',
             FIELD_SHADOW,
             open && 'ring-2 ring-ring',
           )}
