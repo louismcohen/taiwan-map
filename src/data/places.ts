@@ -19,10 +19,52 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-27T06:26:50.694Z"
+  "updatedAt": "2026-11-27T16:42:19.442Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "15682763105049552198",
+    "name": "Bar Soft Cure",
+    "lat": 25.057556,
+    "lng": 121.524244,
+    "address": "104, Taiwan, Taipei City, Zhongshan District, Zhongshan Village, Lane 77, Section 2, Zhongshan N Rd, 25號1樓",
+    "category": "other"
+  },
+  {
+    "id": "15682763105049552198",
+    "name": "Bar Soft Cure",
+    "lat": 25.057556,
+    "lng": 121.524244,
+    "address": "104, Taiwan, Taipei City, Zhongshan District, Zhongshan Village, Lane 77, Section 2, Zhongshan N Rd, 25號1樓",
+    "category": "other"
+  },
+  {
+    "id": "7472512240962236942",
+    "name": "Rare Pleasure Record Bar",
+    "lat": 25.049812,
+    "lng": 121.526796,
+    "address": "104, Taiwan, Taipei City, Zhongshan District, Zhengyi Village, Lane 107, Linsen N Rd, 54號B1",
+    "category": "other"
+  },
+  {
+    "id": "1368020383064311790",
+    "name": "Go Za Vi Toufa",
+    "lat": 25.056943,
+    "lng": 121.515108,
+    "note": "peanut tofu pudding 豆花",
+    "address": "No. 210號, Minsheng W Rd, Xingming Village, Datong District, Taipei City, Taiwan 103",
+    "category": "other"
+  },
+  {
+    "id": "1368020383064311790",
+    "name": "Go Za Vi Toufa",
+    "lat": 25.056943,
+    "lng": 121.515108,
+    "note": "peanut tofu pudding 豆花",
+    "address": "No. 210號, Minsheng W Rd, Xingming Village, Datong District, Taipei City, Taiwan 103",
+    "category": "other"
+  },
   {
     "id": "461759045760824433",
     "name": "XXXLab 解憂吧 Cocktail Bar_Tea Cocktails_Music_茶酒_圓山酒吧_台湾ティーカクテルバー",
