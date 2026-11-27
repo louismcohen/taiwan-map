@@ -61,4 +61,12 @@ export const PLACE_OVERRIDES: Record<string, PlaceOverride> = {
   '17068072370431608807': { category: 'fun' }, // Taiping Suspension Bridge Visitor Service Center
   '18444483875628105684': { category: 'nature', kind: 'forest' }, // Alishan National Forest Recreation Area
   '2795744398904309999': { category: 'nature', kind: 'forest' }, // Sun-Link-Sea
+  '461759045760824433': { category: 'food' }, // XXXLab cocktail bar
+  '2924594903670701877': { category: 'fun' }, // 23 Music Room
+  '12072649379332967898': { category: 'food' }, // Revolver
+  '2376032633753533199': { category: 'food' }, // House
+  '17422499956913495153': { category: 'fun' }, // Huashan 1914 Creative Park
+  '14423639308365593052': { category: 'fun' }, // Songshan Cultural and Creative Park
+  '17493896823329799769': { category: 'fun' }, // Rongjin Gorgeous Time
+  '2046211381744923936': { category: 'food' }, // Xinfu Market
 };

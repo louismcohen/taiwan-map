@@ -19,17 +19,92 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-27T01:44:45.600Z"
+  "updatedAt": "2026-11-27T06:26:50.694Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "461759045760824433",
+    "name": "XXXLab 解憂吧 Cocktail Bar_Tea Cocktails_Music_茶酒_圓山酒吧_台湾ティーカクテルバー",
+    "lat": 25.069556,
+    "lng": 121.522046,
+    "address": "No. 1號, Yumen St, Yuanshan Village, Zhongshan District, Taipei City, Taiwan 10491",
+    "category": "nature"
+  },
+  {
+    "id": "2924594903670701877",
+    "name": "23 Music Room",
+    "lat": 25.069526,
+    "lng": 121.522055,
+    "note": "electronic music",
+    "address": "10491, Taiwan, Taipei City, Zhongshan District, Yuanshan Village, Yumen St, 1號花博公園第１８號店",
+    "category": "other"
+  },
+  {
+    "id": "7970286028990626369",
+    "name": "MAJI Square",
+    "lat": 25.069743,
+    "lng": 121.522152,
+    "address": "No. 1號, Yumen St, Yuanshan Village, Zhongshan District, Taipei City, Taiwan 10491",
+    "category": "food"
+  },
+  {
+    "id": "12072649379332967898",
+    "name": "Revolver",
+    "lat": 25.034274,
+    "lng": 121.517427,
+    "address": "No. 1-2號, Section 1, Roosevelt Rd, Xinying Village, Zhongzheng District, Taipei City, Taiwan 100",
+    "category": "other"
+  },
+  {
+    "id": "18107523463016775824",
+    "name": "Louis Motorrad 台北店 - 摩托車騎士部品",
+    "lat": 25.045598,
+    "lng": 121.526481,
+    "address": "No. 30-3號, Beiping E Rd, Meihua Village, Zhongzheng District, Taipei City, Taiwan 100",
+    "category": "shopping"
+  },
+  {
+    "id": "17073237141737122094",
+    "name": "Taipei City Mall",
+    "lat": 25.049557,
+    "lng": 121.513655,
+    "note": "largest gachapon selection",
+    "address": "100, Taiwan, Taipei City, Zhongzheng District, Liming Village, Section 1, Shimin Blvd, 100號B1",
+    "category": "shopping"
+  },
+  {
+    "id": "2376032633753533199",
+    "name": "House",
+    "lat": 25.043931,
+    "lng": 121.516618,
+    "note": "tea infused cocktails",
+    "address": "100, Taiwan, Taipei City, Zhongzheng District, Liming Village, Gongyuan Rd, 38號3樓",
+    "category": "other"
+  },
+  {
+    "id": "9594543134767854325",
+    "name": "LAI HAO",
+    "lat": 25.032756,
+    "lng": 121.529218,
+    "address": "106, Taiwan, Taipei City, Da’an District, Yongkang Village, Lane 6, Yongkang St, 11號1F",
+    "category": "shopping"
+  },
+  {
+    "id": "14813418316360212022",
+    "name": "National Taiwan Museum Railway Department Park",
+    "lat": 25.048772,
+    "lng": 121.511207,
+    "address": "No. 2, Section 1, Yanping N Rd, Yuquan Village, Datong District, Taipei City, Taiwan 103",
+    "category": "history"
+  },
   {
     "id": "713689805073904645",
     "name": "Farm Dream Estates",
     "lat": 23.801841,
     "lng": 121.463529,
     "address": "No. 20號, Yongfu St, Linrong Village, Fenglin Township, Hualien County, Taiwan 975",
-    "category": "other"
+    "category": "fun"
   },
   {
     "id": "17493896823329799769",
@@ -44,7 +119,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "name": "老漿家OHsoymilk 台北林森店 - 24h不睡覺豆漿店",
     "lat": 25.058389,
     "lng": 121.525665,
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "9216164612906257935",
@@ -52,14 +127,14 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 25.056379,
     "lng": 121.524689,
     "address": "No. 27號, Lane 310, Linsen N Rd, Zhongshan Village, Zhongshan District, Taipei City, Taiwan 10491",
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "17232148673440171155",
     "name": "Sihai Soy Milk",
     "lat": 25.050362,
     "lng": 121.519844,
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "8308624403495307837",
@@ -67,7 +142,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 25.048184,
     "lng": 121.533173,
     "address": "No. 53號, SongJiang Rd, Zhuyuan Village, Zhongshan District, Taipei City, Taiwan 10491",
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "17422499956913495153",
@@ -84,7 +159,8 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lng": 120.450723,
     "note": "soy milk and tofu pudding dessert",
     "address": "No. 233號, Yanping St, Guogou Village, East District, Chiayi City, Taiwan 600",
-    "category": "other"
+    "category": "food",
+    "kind": "dessert"
   },
   {
     "id": "5279492911023272241",
@@ -92,7 +168,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 23.478257,
     "lng": 120.4502,
     "address": "No. 414號, Guangcai St, Zhongyang Village, East District, Chiayi City, Taiwan 600",
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "8763053439228708290",
@@ -100,7 +176,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 23.46564,
     "lng": 120.71311,
     "address": "605, Taiwan, Chiayi County, Alishan Township, Leye Village, 2鄰72號附1",
-    "category": "other"
+    "category": "stay"
   },
   {
     "id": "15259801954093709868",
@@ -109,7 +185,8 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lng": 121.564271,
     "note": "pineapple cake 鳳梨酥 / Fèng lí sū",
     "address": "110, Taiwan, Taipei City, Xinyi District, Xicun Village, Section 5, Xinyi Rd, 7號B1",
-    "category": "shopping"
+    "category": "food",
+    "kind": "dessert"
   },
   {
     "id": "4730455200188102284",
@@ -132,7 +209,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 25.035768,
     "lng": 121.501922,
     "note": "Traditional wet market",
-    "category": "shopping"
+    "category": "history"
   },
   {
     "id": "7364862798033183003",
@@ -140,7 +217,7 @@ export const SAVED_PLACES: SyncedPlace[] = [
     "lat": 25.066708,
     "lng": 121.537006,
     "note": "Seafood market and really good sushi",
-    "category": "other"
+    "category": "food"
   },
   {
     "id": "10164448225396696898",
