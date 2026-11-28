@@ -19,10 +19,53 @@ export const SAVED_LIST = {
   "id": "9mpCSKUqxsBtG5zVjJuFAA",
   "name": "Taiwan 2026",
   "owner": "Louis Cohen",
-  "updatedAt": "2026-11-27T16:42:19.442Z"
+  "updatedAt": "2026-11-28T01:28:22.259Z"
 };
 
 export const SAVED_PLACES: SyncedPlace[] = [
+  {
+    "id": "5118901231431506205",
+    "name": "Lao Wang Ji Beef Noodles",
+    "lat": 25.041666,
+    "lng": 121.510544,
+    "address": "No. 15號, Taoyuan St, Jianguo Village, Zhongzheng District, Taipei City, Taiwan 100",
+    "category": "food",
+    "kind": "noodles"
+  },
+  {
+    "id": "3050142585044218419",
+    "name": "Fuhong Beef Noodles",
+    "lat": 25.047553,
+    "lng": 121.507728,
+    "address": "No. 67號, Luoyang St, Fuxing Village, Wanhua District, Taipei City, Taiwan 108",
+    "category": "food",
+    "kind": "noodles"
+  },
+  {
+    "id": "1174056091795400445",
+    "name": "Liu Shan Dong",
+    "lat": 25.045715,
+    "lng": 121.51376,
+    "note": "beef noodles",
+    "address": "No. 2號, Lane 14, Section 1, Kaifeng St, Liming Village, Zhongzheng District, Taipei City, Taiwan 100",
+    "category": "other"
+  },
+  {
+    "id": "4216115077127311000",
+    "name": "Shuanglian Vegetable/Morning Market",
+    "lat": 25.058451,
+    "lng": 121.520907,
+    "address": "No. 5-1, Lane 45, Minsheng W Rd, Jiying Village, Zhongshan District, Taipei City, Taiwan 10491",
+    "category": "shopping"
+  },
+  {
+    "id": "10059248357733763361",
+    "name": "Guangzhou Street Night Market",
+    "lat": 25.036731,
+    "lng": 121.497613,
+    "address": "Guangzhou St, Wanhua District, Taipei City, Taiwan 108",
+    "category": "night-market"
+  },
   {
     "id": "15682763105049552198",
     "name": "Bar Soft Cure",
